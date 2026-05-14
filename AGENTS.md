@@ -15,6 +15,7 @@ This project is a browser-only math maze generator for high school classroom pra
 - Read `README.md` and inspect `app/index.html`.
 - Check both worksheet mode and interactive mode when changing maze rendering.
 - Preserve import/export compatibility for existing `.json` maze files.
+- Preserve browser-only recent-maze storage; do not require accounts or external databases.
 - Do not hardcode one topic as the only supported path; this app should stay topic-flexible.
 
 ## Validation
@@ -31,6 +32,8 @@ Then open the local app and verify:
 - a sample loads successfully
 - the maze renders in Grid, Hexagonal, Snaking Path, and Circular styles
 - interactive answer clicks advance the path
+- Teacher Key mode shows highlighted correct paths and an answer list
+- Bulk entry accepts `problem | correct answer | wrong 1 | wrong 2 | wrong 3`
+- Recent Mazes can restore, copy, and delete a saved maze
 - deleting or clearing problems returns to the empty state without crashing
 - Print / Save as PDF switches to worksheet mode
-

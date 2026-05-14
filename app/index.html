@@ -298,21 +298,55 @@
     padding: 3px;
     gap: 3px;
   }
-  .mode-toggle button {
-    flex: 1;
-    border: none;
-    background: transparent;
-    padding: 6px;
-    font-size: 12px;
+    .mode-toggle button {
+      flex: 1;
+      border: none;
+      background: transparent;
+      padding: 6px;
+      font-size: 12px;
     font-weight: 500;
     color: var(--muted);
     border-radius: 6px;
   }
-  .mode-toggle button.active {
-    background: #fff;
-    color: var(--ink);
-    box-shadow: var(--shadow);
-  }
+    .mode-toggle button.active {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+    .section-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .recent-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .recent-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+    }
+    .recent-card .recent-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .recent-card .recent-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+    .recent-card .recent-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 8px;
+    }
 
   /* ============== Maze Canvas ============== */
   .maze-card {
@@ -348,7 +382,48 @@
     color: var(--muted);
     margin-top: 2px;
   }
-  .maze-svg { width: 100%; height: auto; max-width: 920px; margin: 0 auto; display: block; }
+    .maze-svg { width: 100%; height: auto; max-width: 920px; margin: 0 auto; display: block; }
+    .teacher-key {
+      margin: 18px auto 0;
+      max-width: 920px;
+      border-top: 2px solid var(--line);
+      padding-top: 14px;
+    }
+    .teacher-key h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .teacher-key-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .teacher-key-item {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      break-inside: avoid;
+    }
+    .teacher-key-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--good-soft);
+      color: var(--good);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .teacher-key-answer {
+      font-size: 13px;
+      line-height: 1.35;
+    }
 
   /* ============== Maze SVG styling ============== */
   .cell-shape { fill: #fff; stroke: #1f2533; stroke-width: 2.5; }
@@ -431,14 +506,40 @@
     gap: 8px;
     margin-top: 16px;
   }
-  .modal .distractor-row {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 6px;
-    align-items: center;
-  }
-  .modal .distractor-row math-field { flex: 1; min-height: 38px; font-size: 14px; }
-  .modal .distractor-row .marker { color: var(--bad); font-weight: 700; width: 16px; flex-shrink: 0; }
+    .modal .distractor-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+    .modal .distractor-row math-field { flex: 1; min-height: 38px; font-size: 14px; }
+    .modal .distractor-row .marker { color: var(--bad); font-weight: 700; width: 16px; flex-shrink: 0; }
+    .bulk-textarea {
+      min-height: 220px;
+      resize: vertical;
+      font-family: ui-monospace, "SF Mono", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .bulk-status {
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      background: #f8f9fc;
+      color: var(--ink-soft);
+      border: 1px solid var(--line);
+    }
+    .bulk-status.error {
+      background: var(--bad-soft);
+      color: var(--bad);
+      border-color: #fecaca;
+    }
+    .bulk-status.success {
+      background: var(--good-soft);
+      color: var(--good);
+      border-color: #bbf7d0;
+    }
 
   .hint {
     font-size: 12px;
@@ -508,9 +609,9 @@
   }
 
   /* ============== Print styles ============== */
-  @media print {
-    @page { size: letter portrait; margin: 0.4in; }
-    header.app-header, aside.sidebar, .maze-controls, .status-banner { display: none !important; }
+    @media print {
+      @page { size: letter portrait; margin: 0.4in; }
+      header.app-header, aside.sidebar, .maze-controls, .status-banner { display: none !important; }
     main.app { grid-template-columns: 1fr; }
     section.maze-area { padding: 0; }
     .maze-card {
@@ -519,10 +620,12 @@
       padding: 0;
       min-height: 0;
     }
-    body { background: #fff; }
-    .arrow-shape.correct-revealed, .arrow-shape.wrong-revealed { fill: #fff !important; }
-    .cell-shape.current, .cell-shape.visited { fill: #fff !important; stroke: #1f2533 !important; }
-  }
+      body { background: #fff; }
+      .arrow-shape.correct-revealed, .arrow-shape.wrong-revealed { fill: #fff !important; }
+      body.key-mode .arrow-shape.correct-revealed { fill: #dcfce7 !important; }
+      .cell-shape.current, .cell-shape.visited { fill: #fff !important; stroke: #1f2533 !important; }
+      .teacher-key { display: block !important; }
+    }
 
   .maze-controls {
     display: flex;
@@ -683,23 +786,26 @@
 
     <!-- Mode -->
     <h2 class="section-title">Mode</h2>
-    <div class="mode-toggle" id="mode-toggle">
-      <button data-mode="interactive" class="active">Interactive</button>
-      <button data-mode="worksheet">Worksheet</button>
-    </div>
-    <details class="help">
-      <summary>What's the difference?</summary>
-      <p><strong>Interactive:</strong> Students click answer arrows on screen — instant feedback, tracks the path from START to END.</p>
-      <p><strong>Worksheet:</strong> Static printable view (use your browser's <kbd>Print</kbd> button to make a PDF or paper copy).</p>
-    </details>
+      <div class="mode-toggle" id="mode-toggle">
+        <button data-mode="interactive" class="active">Interactive</button>
+        <button data-mode="worksheet">Worksheet</button>
+        <button data-mode="key">Teacher Key</button>
+      </div>
+      <details class="help">
+        <summary>What's the difference?</summary>
+        <p><strong>Interactive:</strong> Students click answer arrows on screen — instant feedback, tracks the path from START to END.</p>
+        <p><strong>Worksheet:</strong> Static printable view (use your browser's <kbd>Print</kbd> button to make a PDF or paper copy).</p>
+        <p><strong>Teacher Key:</strong> Shows the correct path and a printable answer list.</p>
+      </details>
 
     <!-- Problem List -->
     <h2 class="section-title">Problems <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(<span id="problem-count">0</span>)</span></h2>
     <div class="problem-list" id="problem-list"></div>
-    <div style="display:flex;gap:6px;margin-top:10px;">
-      <button id="btn-add-problem" class="primary" style="flex:1;">+ Add Problem</button>
-      <button id="btn-clear-problems" class="ghost danger" title="Clear all problems">Clear</button>
-    </div>
+      <div class="section-actions">
+        <button id="btn-add-problem" class="primary" style="flex:1;">+ Add Problem</button>
+        <button id="btn-bulk-entry" class="ghost" title="Paste many problems at once">Bulk</button>
+        <button id="btn-clear-problems" class="ghost danger" title="Clear all problems">Clear</button>
+      </div>
     <details class="help">
       <summary>Math input help</summary>
       <p>Each problem and answer uses a <strong>math field</strong> — you can type math directly with intuitive shortcuts:</p>
@@ -712,9 +818,12 @@
         <code>x_1</code><span>→ subscript</span>
       </div>
       <p>Click the <strong>⌨ keyboard icon</strong> in the field to open a virtual math keyboard with fractions, exponents, radicals, Greek letters, and more.</p>
-    </details>
+      </details>
 
-  </aside>
+      <h2 class="section-title">Recent Mazes</h2>
+      <div class="recent-list" id="recent-list"></div>
+
+    </aside>
 
   <!-- ============== MAZE AREA ============== -->
   <section class="maze-area">
@@ -780,9 +889,29 @@
       <button id="btn-modal-save" class="primary">Save Problem</button>
     </div>
   </div>
-</div>
+  </div>
 
-<div class="toast" id="toast"></div>
+  <!-- Bulk Problem Entry Modal -->
+  <div class="modal-overlay" id="bulk-modal-overlay">
+    <div class="modal">
+      <h2>Bulk Add Problems</h2>
+      <div class="form-grid">
+        <div>
+          <label for="bulk-input">Paste one problem per line</label>
+          <textarea id="bulk-input" class="bulk-textarea" placeholder="2x + 5 = 11 | x = 3 | x = 8 | x = -3 | x = 6&#10;x^2 + 8x + 12 | (x+6)(x+2) | (x+3)(x+4) | (x+8)(x+1) | (x-6)(x-2)"></textarea>
+          <div class="hint">Use this format: <code>problem | correct answer | wrong 1 | wrong 2 | wrong 3</code></div>
+        </div>
+        <div id="bulk-status" class="bulk-status">Ready for pasted rows.</div>
+      </div>
+      <div class="actions">
+        <button id="btn-bulk-cancel">Cancel</button>
+        <button id="btn-bulk-replace" class="ghost">Replace Problems</button>
+        <button id="btn-bulk-add" class="primary">Add Rows</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================================
@@ -791,21 +920,27 @@
 const state = {
   title: "My Math Maze",
   subtitle: "",
-  style: "square",          // hexagonal | square | linear | circular
-  mode: "interactive",         // interactive | worksheet
-  problems: [],                // [{ id, problem, correctAnswer, distractors:[] }]  -- all stored as LaTeX strings
-  pathIndex: 0,
-  selectedAnswers: {},
-  showingSolution: false,
-  editingProblemId: null,
+    style: "square",          // hexagonal | square | linear | circular
+    mode: "interactive",         // interactive | worksheet | key
+    problems: [],                // [{ id, problem, correctAnswer, distractors:[] }]  -- all stored as LaTeX strings
+    pathIndex: 0,
+    selectedAnswers: {},
+    showingSolution: false,
+    editingProblemId: null,
+    currentMazeId: null,
+    autosaveTimer: null,
   // Seed for circular-maze path selection. Re-rolled on each page load and
   // each loadSample(), but kept stable across re-renders within a session so
   // toggling mode/style/interaction doesn't shuffle the maze.
   circularPathSeed: Math.random(),
   // Salt appended to distractor shuffle seeds — incremented by the Reshuffle button
   // to produce a different connector layout without changing problem content.
-  shuffleSalt: 0,
-};
+    shuffleSalt: 0,
+  };
+
+  const STORAGE_KEY_RECENTS = 'mathMazeRecentMazesV1';
+  const RECENT_LIMIT = 8;
+  const VALID_STYLES = ['hexagonal', 'square', 'linear', 'circular'];
 
 /* =========================================================================
    SAMPLE DATA — multiple topics, all stored as LaTeX
@@ -1460,11 +1595,11 @@ function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Render LaTeX to HTML using KaTeX. Falls back to plain text if KaTeX isn't loaded.
+  // Render LaTeX to HTML using KaTeX. Falls back to plain text if KaTeX isn't loaded.
   function renderLatex(latex, opts = {}) {
-  if (!latex) return "";
-  if (typeof katex === 'undefined') return escapeHtml(latex);
-  try {
+    if (!latex) return "";
+    if (typeof katex === 'undefined') return escapeHtml(latex);
+    try {
     return katex.renderToString(String(latex), {
       throwOnError: false,
       displayMode: !!opts.displayMode,
@@ -1472,13 +1607,14 @@ function escapeHtml(s) {
       strict: false,
       trust: false,
     });
-  } catch (e) {
-    return escapeHtml(latex);
+    } catch (e) {
+      return escapeHtml(latex);
+    }
   }
 
   function emptyStateMarkup() {
-    return `
-      <div class="empty-state" id="empty-state">
+      return `
+        <div class="empty-state" id="empty-state">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
           <polygon points="32,8 56,22 56,42 32,56 8,42 8,22" stroke="#cbd5e1" stroke-width="2.5" fill="#f8fafc"/>
           <text x="32" y="36" text-anchor="middle" font-size="18" font-weight="700" fill="#94a3b8">?</text>
@@ -1486,10 +1622,145 @@ function escapeHtml(s) {
         <h3>Add some problems to build your maze</h3>
         <p style="font-size:13px;margin:0 0 12px;">You'll need at least 3 problems. Try a sample set to see how it works.</p>
         <button id="btn-load-sample-empty" class="primary">Load a Sample</button>
-      </div>
-    `;
+        </div>
+      `;
   }
-}
+
+  function recentId() {
+    return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function normalizeProblemRecord(p) {
+    return {
+      id: p.id || uid(),
+      problem: String(p.problem || '').trim(),
+      correctAnswer: String(p.correctAnswer || '').trim(),
+      distractors: (Array.isArray(p.distractors) ? p.distractors : ['', '', ''])
+        .map(d => String(d || '').trim())
+        .concat(['', '', ''])
+        .slice(0, 3),
+    };
+  }
+
+  function mazeDataFromState() {
+    return {
+      title: state.title || 'My Math Maze',
+      subtitle: state.subtitle || '',
+      style: VALID_STYLES.includes(state.style) ? state.style : 'square',
+      problems: state.problems.map(({ id, ...rest }) => ({
+        problem: rest.problem,
+        correctAnswer: rest.correctAnswer,
+        distractors: (rest.distractors || []).slice(0, 3),
+      })),
+    };
+  }
+
+  function readRecentMazes() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORAGE_KEY_RECENTS) || '[]');
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function writeRecentMazes(recents) {
+    try {
+      localStorage.setItem(STORAGE_KEY_RECENTS, JSON.stringify(recents.slice(0, RECENT_LIMIT)));
+    } catch (e) {
+      showToast('Recent mazes could not be saved in this browser.');
+    }
+  }
+
+  function scheduleAutosave() {
+    clearTimeout(state.autosaveTimer);
+    if (state.problems.length === 0) return;
+    state.autosaveTimer = setTimeout(saveCurrentToRecent, 500);
+  }
+
+  function saveCurrentToRecent() {
+    if (state.problems.length === 0) {
+      renderRecentMazes();
+      return;
+    }
+    if (!state.currentMazeId) state.currentMazeId = recentId();
+    const now = Date.now();
+    const data = mazeDataFromState();
+    const record = {
+      id: state.currentMazeId,
+      title: data.title || 'Untitled Maze',
+      subtitle: data.subtitle || '',
+      style: data.style,
+      problemCount: data.problems.length,
+      updatedAt: now,
+      data,
+    };
+    const recents = readRecentMazes().filter(item => item && item.id !== record.id);
+    recents.unshift(record);
+    writeRecentMazes(recents);
+    renderRecentMazes();
+  }
+
+  function renderRecentMazes() {
+    const list = document.getElementById('recent-list');
+    if (!list) return;
+    const recents = readRecentMazes();
+    if (recents.length === 0) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;font-style:italic;padding:4px 0 12px;">Saved mazes will appear here automatically.</div>';
+      return;
+    }
+    list.innerHTML = recents.map(item => {
+      const date = item.updatedAt ? new Date(item.updatedAt).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'recently';
+      const active = item.id === state.currentMazeId ? ' • open now' : '';
+      return `
+        <div class="recent-card" data-recent-id="${escapeHtml(item.id)}">
+          <div class="recent-title">${escapeHtml(item.title || 'Untitled Maze')}</div>
+          <div class="recent-meta">${item.problemCount || 0} problems • ${escapeHtml(date)}${active}</div>
+          <div class="recent-actions">
+            <button class="small ghost" data-recent-action="restore">Restore</button>
+            <button class="small ghost" data-recent-action="duplicate">Copy</button>
+            <button class="small ghost danger" data-recent-action="delete">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function applyMazeData(data, options = {}) {
+    state.title = data.title || 'My Math Maze';
+    state.subtitle = data.subtitle || '';
+    state.style = VALID_STYLES.includes(data.style) ? data.style : 'square';
+    state.problems = (Array.isArray(data.problems) ? data.problems : []).map(normalizeProblemRecord);
+    state.currentMazeId = options.currentMazeId === undefined ? null : options.currentMazeId;
+    state.circularPathSeed = Math.random();
+    document.getElementById('maze-title').value = state.title;
+    document.getElementById('maze-subtitle').value = state.subtitle;
+    document.querySelectorAll('.style-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.style === state.style);
+    });
+    resetInteractiveProgress();
+    renderAll({ autosave: options.autosave !== false });
+  }
+
+  function handleRecentAction(action, id) {
+    const recents = readRecentMazes();
+    const item = recents.find(r => r.id === id);
+    if (!item) return;
+    if (action === 'restore') {
+      applyMazeData(item.data, { currentMazeId: item.id });
+      showToast(`Restored: ${item.title || 'Untitled Maze'}`);
+    } else if (action === 'duplicate') {
+      const title = `${item.data.title || item.title || 'Untitled Maze'} Copy`;
+      applyMazeData({ ...item.data, title }, { currentMazeId: recentId() });
+      saveCurrentToRecent();
+      showToast('Copied recent maze');
+    } else if (action === 'delete') {
+      if (!confirm('Delete this saved maze from Recent Mazes?')) return;
+      writeRecentMazes(recents.filter(r => r.id !== id));
+      if (state.currentMazeId === id) state.currentMazeId = null;
+      renderRecentMazes();
+    }
+  }
 
 /* =========================================================================
    AUTO-DISTRACTOR GENERATION
@@ -1786,51 +2057,32 @@ function moveProblem(id, delta) {
   renderAll();
 }
 
-function clearAllProblems() {
-  if (!confirm('Remove all problems?')) return;
-  state.problems = [];
-  resetInteractiveProgress();
-  renderAll();
-}
+  function clearAllProblems() {
+    if (!confirm('Remove all problems?')) return;
+    state.problems = [];
+    state.currentMazeId = null;
+    resetInteractiveProgress();
+    renderAll();
+  }
 
 /* =========================================================================
    IMPORT / EXPORT / SAMPLE
    ========================================================================= */
-function loadSample(key) {
-  if (key === 'blank') {
-    state.title = 'My Math Maze';
-    state.subtitle = '';
-    state.problems = [];
-    document.getElementById('maze-title').value = state.title;
-    document.getElementById('maze-subtitle').value = state.subtitle;
-    resetInteractiveProgress();
-    renderAll();
-    showToast('Cleared — start adding problems');
-    return;
+  function loadSample(key) {
+    if (key === 'blank') {
+      applyMazeData({ title: 'My Math Maze', subtitle: '', style: 'square', problems: [] }, { currentMazeId: null, autosave: false });
+      showToast('Cleared — start adding problems');
+      return;
+    }
+    const sample = SAMPLES[key];
+    if (!sample) return;
+    applyMazeData(sample, { currentMazeId: null });
+    showToast(`Loaded sample: ${sample.title}`);
   }
-  const sample = SAMPLES[key];
-  if (!sample) return;
-  state.title = sample.title;
-  state.subtitle = sample.subtitle;
-  state.style = sample.style;
-  state.problems = sample.problems.map(p => ({ id: uid(), ...p }));
-  state.circularPathSeed = Math.random();  // pick a fresh circular path pattern
-  document.getElementById('maze-title').value = state.title;
-  document.getElementById('maze-subtitle').value = state.subtitle;
-  setActiveStyle(state.style);
-  resetInteractiveProgress();
-  renderAll();
-  showToast(`Loaded sample: ${sample.title}`);
-}
 
 function exportJSON() {
   if (state.problems.length === 0) return showToast('Nothing to export yet');
-  const data = {
-    title: state.title,
-    subtitle: state.subtitle,
-    style: state.style,
-    problems: state.problems.map(({ id, ...rest }) => rest),
-  };
+    const data = mazeDataFromState();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1843,53 +2095,108 @@ function exportJSON() {
   showToast('Exported');
 }
 
-function importJSON(file) {
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data.problems)) throw new Error('Invalid file');
-      state.title = data.title || 'My Math Maze';
-      state.subtitle = data.subtitle || '';
-      state.style = ['hexagonal', 'square', 'linear', 'circular'].includes(data.style) ? data.style : 'square';
-      state.problems = data.problems.map(p => ({
-        id: uid(),
-        problem: p.problem || '',
-        correctAnswer: p.correctAnswer || '',
-        distractors: Array.isArray(p.distractors) ? p.distractors : ['', '', ''],
-      }));
-      document.getElementById('maze-title').value = state.title;
-      document.getElementById('maze-subtitle').value = state.subtitle;
-      setActiveStyle(state.style);
-      resetInteractiveProgress();
-      renderAll();
-      showToast(`Imported ${state.problems.length} problems`);
-    } catch (err) {
-      showToast("Couldn't read that file");
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data.problems)) throw new Error('Invalid file');
+        applyMazeData(data, { currentMazeId: null });
+        showToast(`Imported ${state.problems.length} problems`);
+      } catch (err) {
+        showToast("Couldn't read that file");
     }
-  };
-  reader.readAsText(file);
-}
+    };
+    reader.readAsText(file);
+  }
+
+  function openBulkEntry() {
+    document.getElementById('bulk-modal-overlay').classList.add('open');
+    updateBulkStatus();
+    setTimeout(() => document.getElementById('bulk-input').focus(), 50);
+  }
+
+  function closeBulkEntry() {
+    document.getElementById('bulk-modal-overlay').classList.remove('open');
+  }
+
+  function parseBulkProblems(text) {
+    const rows = [];
+    const errors = [];
+    const lines = String(text || '').split(/\r?\n/);
+    lines.forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      const parts = trimmed.split('|').map(part => part.trim());
+      if (parts.length !== 5 || parts.some(part => !part)) {
+        errors.push(`Line ${index + 1}: use problem | correct answer | wrong 1 | wrong 2 | wrong 3`);
+        return;
+      }
+      rows.push({
+        id: uid(),
+        problem: parts[0],
+        correctAnswer: parts[1],
+        distractors: parts.slice(2, 5),
+      });
+    });
+    return { rows, errors };
+  }
+
+  function updateBulkStatus() {
+    const status = document.getElementById('bulk-status');
+    if (!status) return;
+    const { rows, errors } = parseBulkProblems(document.getElementById('bulk-input').value);
+    status.className = 'bulk-status';
+    if (errors.length) {
+      status.classList.add('error');
+      status.innerHTML = `${errors.length} row${errors.length === 1 ? '' : 's'} need attention:<br>${errors.map(escapeHtml).join('<br>')}`;
+    } else if (rows.length) {
+      status.classList.add('success');
+      status.textContent = `${rows.length} problem${rows.length === 1 ? '' : 's'} ready to add.`;
+    } else {
+      status.textContent = 'Ready for pasted rows.';
+    }
+  }
+
+  function commitBulkProblems(replace = false) {
+    const input = document.getElementById('bulk-input');
+    const { rows, errors } = parseBulkProblems(input.value);
+    updateBulkStatus();
+    if (errors.length || rows.length === 0) return showToast(errors.length ? 'Fix the highlighted bulk rows first.' : 'Paste at least one problem row.');
+    if (replace && state.problems.length && !confirm('Replace all existing problems with these rows?')) return;
+    state.problems = replace ? rows : state.problems.concat(rows);
+    if (replace) state.currentMazeId = null;
+    resetInteractiveProgress();
+    renderAll();
+    input.value = '';
+    updateBulkStatus();
+    closeBulkEntry();
+    showToast(`${replace ? 'Replaced with' : 'Added'} ${rows.length} problem${rows.length === 1 ? '' : 's'}`);
+  }
 
 /* =========================================================================
    STYLE / MODE
    ========================================================================= */
-function setActiveStyle(style) {
-  state.style = style;
-  document.querySelectorAll('.style-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.style === style);
-  });
-  resetInteractiveProgress();
-  renderMaze();
-}
+  function setActiveStyle(style) {
+    state.style = style;
+    document.querySelectorAll('.style-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.style === style);
+    });
+    resetInteractiveProgress();
+    renderMaze();
+    scheduleAutosave();
+  }
 
-function setMode(mode) {
-  state.mode = mode;
-  document.querySelectorAll('#mode-toggle button').forEach(b => {
-    b.classList.toggle('active', b.dataset.mode === mode);
-  });
-  renderMaze();
-}
+  function setMode(mode) {
+    state.mode = mode;
+    document.body.classList.toggle('interactive-mode', mode === 'interactive');
+    document.body.classList.toggle('worksheet-mode', mode === 'worksheet');
+    document.body.classList.toggle('key-mode', mode === 'key');
+    document.querySelectorAll('#mode-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.mode === mode);
+    });
+    renderMaze();
+  }
 
 function resetInteractiveProgress() {
   state.pathIndex = 0;
@@ -1921,13 +2228,30 @@ function shuffleDeterministic(arr, seedStr) {
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
-  return a;
-}
 
-/* =========================================================================
-   RENDER MAZE
-   ========================================================================= */
+  function renderTeacherKey() {
+    if (state.problems.length === 0) return '';
+    return `
+      <div class="teacher-key">
+        <h3>Teacher Key</h3>
+        <div class="teacher-key-grid">
+          ${state.problems.map((p, i) => `
+            <div class="teacher-key-item">
+              <span class="teacher-key-num">${i + 1}</span>
+              <div class="teacher-key-answer">${renderLatex(p.correctAnswer)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  /* =========================================================================
+     RENDER MAZE
+     ========================================================================= */
 function renderMaze() {
   const area = document.getElementById('maze-render-area');
 
@@ -1948,16 +2272,16 @@ function renderMaze() {
 
   document.getElementById('maze-controls').style.display = 'flex';
   let svg;
-  switch (state.style) {
-    case 'hexagonal': svg = renderHexagonalMaze(); break;
-    case 'square':    svg = renderSquareMaze(); break;
-    case 'linear':    svg = renderLinearMaze(); break;
-    case 'circular':  svg = renderCircularMaze(); break;
+    switch (state.style) {
+      case 'hexagonal': svg = renderHexagonalMaze(); break;
+      case 'square':    svg = renderSquareMaze(); break;
+      case 'linear':    svg = renderLinearMaze(); break;
+      case 'circular':  svg = renderCircularMaze(); break;
+    }
+    area.innerHTML = svg + (state.mode === 'key' ? renderTeacherKey() : '');
+    attachInteractiveHandlers();
+    updateInteractiveStatus();
   }
-  area.innerHTML = svg;
-  attachInteractiveHandlers();
-  updateInteractiveStatus();
-}
 
 function updateInteractiveStatus() {
   const banner = document.getElementById('status-banner');
@@ -2222,17 +2546,19 @@ function renderArrow(problemId, answer, isCorrect, dir, problemIdx) {
 
   let klass = 'arrow-shape';
   const selected = state.selectedAnswers[problemId];
-  if (state.mode === 'interactive') {
-    klass += ' clickable';
-    if (problemIdx !== state.pathIndex) klass += ' locked';
-    if (state.showingSolution) {
-      if (isCorrect) klass += ' correct-revealed';
-    } else if (selected !== undefined) {
-      if (selected === answer) {
-        klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+    if (state.mode === 'interactive') {
+      klass += ' clickable';
+      if (problemIdx !== state.pathIndex) klass += ' locked';
+      if (state.showingSolution) {
+        if (isCorrect) klass += ' correct-revealed';
+      } else if (selected !== undefined) {
+        if (selected === answer) {
+          klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+        }
       }
+    } else if (state.mode === 'key' && isCorrect) {
+      klass += ' correct-revealed';
     }
-  }
 
   // Keep math text upright even when arrow is rotated past 90°
   const textAngleDeg = angle * 180 / Math.PI;
@@ -2395,14 +2721,16 @@ function renderRectConnector(fromPos, dx, dy, answer, isCorrect, problemId, prob
 
   let klass = 'arrow-shape';
   const selected = state.selectedAnswers[problemId];
-  if (state.mode === 'interactive') {
-    klass += ' clickable';
-    if (problemIdx !== state.pathIndex) klass += ' locked';
-    if (state.showingSolution && isCorrect) klass += ' correct-revealed';
-    else if (selected !== undefined && selected === answer) {
-      klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+    if (state.mode === 'interactive') {
+      klass += ' clickable';
+      if (problemIdx !== state.pathIndex) klass += ' locked';
+      if (state.showingSolution && isCorrect) klass += ' correct-revealed';
+      else if (selected !== undefined && selected === answer) {
+        klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+      }
+    } else if (state.mode === 'key' && isCorrect) {
+      klass += ' correct-revealed';
     }
-  }
 
   const dataAttrs = `data-problem-id="${problemId}" data-answer="${escapeHtml(answer)}" data-correct="${isCorrect}" data-problem-idx="${problemIdx}"`;
 
@@ -2704,14 +3032,16 @@ function renderCircularSharedConnector(fromPos, toCell, answer, isCorrect, probl
 
   let klass = 'arrow-shape';
   const selected = state.selectedAnswers[problemId];
-  if (state.mode === 'interactive') {
-    klass += ' clickable';
-    if (problemIdx !== state.pathIndex) klass += ' locked';
-    if (state.showingSolution && isCorrect) klass += ' correct-revealed';
-    else if (selected !== undefined && selected === answer) {
-      klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+    if (state.mode === 'interactive') {
+      klass += ' clickable';
+      if (problemIdx !== state.pathIndex) klass += ' locked';
+      if (state.showingSolution && isCorrect) klass += ' correct-revealed';
+      else if (selected !== undefined && selected === answer) {
+        klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+      }
+    } else if (state.mode === 'key' && isCorrect) {
+      klass += ' correct-revealed';
     }
-  }
   const dataAttrs = `data-problem-id="${problemId}" data-answer="${escapeHtml(answer)}" data-correct="${isCorrect}" data-problem-idx="${problemIdx}"`;
 
   return `
@@ -2762,25 +3092,29 @@ function attachInteractiveHandlers() {
 /* =========================================================================
    MAIN RENDER
    ========================================================================= */
-function renderAll() {
-  renderProblemList();
-  renderMaze();
-}
+  function renderAll(options = {}) {
+    renderProblemList();
+    renderMaze();
+    renderRecentMazes();
+    if (options.autosave !== false) scheduleAutosave();
+  }
 
 /* =========================================================================
    EVENT WIRING
    ========================================================================= */
 function init() {
-  document.getElementById('maze-title').addEventListener('input', e => {
-    state.title = e.target.value;
-    document.getElementById('display-title').textContent = state.title || 'Math Maze';
-  });
-  document.getElementById('maze-subtitle').addEventListener('input', e => {
-    state.subtitle = e.target.value;
-    const el = document.getElementById('display-subtitle');
-    el.innerHTML = renderLatex(state.subtitle || '');
-    el.style.display = state.subtitle ? 'block' : 'none';
-  });
+    document.getElementById('maze-title').addEventListener('input', e => {
+      state.title = e.target.value;
+      document.getElementById('display-title').textContent = state.title || 'Math Maze';
+      scheduleAutosave();
+    });
+    document.getElementById('maze-subtitle').addEventListener('input', e => {
+      state.subtitle = e.target.value;
+      const el = document.getElementById('display-subtitle');
+      el.innerHTML = renderLatex(state.subtitle || '');
+      el.style.display = state.subtitle ? 'block' : 'none';
+      scheduleAutosave();
+    });
 
   document.querySelectorAll('.style-card').forEach(card => {
     card.addEventListener('click', () => setActiveStyle(card.dataset.style));
@@ -2790,8 +3124,16 @@ function init() {
     btn.addEventListener('click', () => setMode(btn.dataset.mode));
   });
 
-  document.getElementById('btn-add-problem').addEventListener('click', () => openEditor(null));
-  document.getElementById('btn-clear-problems').addEventListener('click', clearAllProblems);
+    document.getElementById('btn-add-problem').addEventListener('click', () => openEditor(null));
+    document.getElementById('btn-bulk-entry').addEventListener('click', openBulkEntry);
+    document.getElementById('btn-clear-problems').addEventListener('click', clearAllProblems);
+    document.getElementById('recent-list').addEventListener('click', e => {
+      const btn = e.target.closest('[data-recent-action]');
+      if (!btn) return;
+      const card = btn.closest('[data-recent-id]');
+      if (!card) return;
+      handleRecentAction(btn.dataset.recentAction, card.dataset.recentId);
+    });
 
   // Sample dropdown
   const dropdown = document.getElementById('dropdown-samples');
@@ -2813,9 +3155,16 @@ function init() {
   document.getElementById('btn-modal-save').addEventListener('click', () => saveProblemFromEditor('close'));
   document.getElementById('btn-modal-save-add').addEventListener('click', () => saveProblemFromEditor('add-another'));
   document.getElementById('btn-modal-save-dup').addEventListener('click', () => saveProblemFromEditor('duplicate'));
-  document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target.id === 'modal-overlay') closeEditor();
-  });
+    document.getElementById('modal-overlay').addEventListener('click', e => {
+      if (e.target.id === 'modal-overlay') closeEditor();
+    });
+    document.getElementById('btn-bulk-cancel').addEventListener('click', closeBulkEntry);
+    document.getElementById('btn-bulk-add').addEventListener('click', () => commitBulkProblems(false));
+    document.getElementById('btn-bulk-replace').addEventListener('click', () => commitBulkProblems(true));
+    document.getElementById('bulk-input').addEventListener('input', updateBulkStatus);
+    document.getElementById('bulk-modal-overlay').addEventListener('click', e => {
+      if (e.target.id === 'bulk-modal-overlay') closeBulkEntry();
+    });
   document.getElementById('btn-regenerate-distractors').addEventListener('click', () => {
     const correct = (document.getElementById('m-correct').value || '').trim();
     if (!correct) return showToast('Enter the correct answer first');
@@ -2840,14 +3189,14 @@ function init() {
     renderMaze();
     showToast('Maze reshuffled!');
   });
-  document.getElementById('btn-print').addEventListener('click', () => {
-    const wasMode = state.mode;
-    setMode('worksheet');
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setMode(wasMode), 100);
-    }, 100);
-  });
+    document.getElementById('btn-print').addEventListener('click', () => {
+      const wasMode = state.mode;
+      if (wasMode === 'interactive') setMode('worksheet');
+      setTimeout(() => {
+        window.print();
+        if (wasMode === 'interactive') setTimeout(() => setMode(wasMode), 100);
+      }, 100);
+    });
   document.getElementById('btn-reset-path').addEventListener('click', () => {
     resetInteractiveProgress();
     renderMaze();
@@ -2870,22 +3219,26 @@ function init() {
   });
 
   // Keyboard
-  document.addEventListener('keydown', e => {
-    if (document.getElementById('modal-overlay').classList.contains('open')) {
-      if (e.key === 'Escape') closeEditor();
-    }
-  });
+    document.addEventListener('keydown', e => {
+      if (document.getElementById('modal-overlay').classList.contains('open')) {
+        if (e.key === 'Escape') closeEditor();
+      }
+      if (document.getElementById('bulk-modal-overlay').classList.contains('open')) {
+        if (e.key === 'Escape') closeBulkEntry();
+      }
+    });
 
-  renderAll();
-}
+    setMode(state.mode);
+    renderAll({ autosave: false });
+  }
 
 // Wait for DOMContentLoaded; KaTeX & MathLive load with `defer`, so they should be ready by then.
 // We re-render once everything settles to ensure KaTeX is available for the initial paint.
 document.addEventListener('DOMContentLoaded', () => {
-  init();
-  // Re-render once libraries are surely loaded (defensive)
-  setTimeout(renderAll, 200);
-});
+    init();
+    // Re-render once libraries are surely loaded (defensive)
+    setTimeout(() => renderAll({ autosave: false }), 200);
+  });
 </script>
 </body>
 </html>
