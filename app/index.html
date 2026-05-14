@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Maze Generator</title>
+
+<!-- KaTeX (rendering) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+<!-- MathLive (math input field with virtual keyboard) -->
+<script defer src="https://unpkg.com/mathlive@0.101.2/dist/mathlive.min.js"></script>
+
+<style>
+  /* ============== Base & Layout ============== */
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --ink: #1f2533;
+    --ink-soft: #4f586d;
+    --muted: #8a93a8;
+    --line: #e1e6f0;
+    --accent: #4f46e5;
+    --accent-soft: #ede9fe;
+    --good: #16a34a;
+    --good-soft: #dcfce7;
+    --bad: #dc2626;
+    --bad-soft: #fee2e2;
+    --warn: #f59e0b;
+    --shadow: 0 1px 2px rgba(15,23,42,.04), 0 4px 16px rgba(15,23,42,.06);
+  }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    height: 100%;
+  }
+  body { min-height: 100vh; }
+
+  header.app-header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: sticky; top: 0; z-index: 50;
+  }
+  header.app-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+  }
+  header.app-header .tag {
+    font-size: 12px;
+    color: var(--muted);
+    padding: 3px 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  header.app-header .spacer { flex: 1; }
+
+  /* Dropdown menu */
+  .dropdown { position: relative; display: inline-block; }
+  .dropdown-menu {
+    position: absolute;
+    right: 0; top: calc(100% + 6px);
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(15,23,42,.1);
+    min-width: 260px;
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 60;
+    display: none;
+  }
+  .dropdown.open .dropdown-menu { display: block; }
+  .dropdown-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .dropdown-menu button:hover { background: var(--accent-soft); }
+  .dropdown-menu .label {
+    padding: 8px 14px 4px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+  }
+  .dropdown-menu hr { margin: 4px 0; border: none; border-top: 1px solid var(--line); }
+
+  main.app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 56px);
+  }
+  @media (max-width: 900px) {
+    main.app { grid-template-columns: 1fr; }
+  }
+
+  aside.sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 18px;
+    overflow-y: auto;
+    max-height: calc(100vh - 56px);
+  }
+  section.maze-area {
+    padding: 18px;
+    overflow: auto;
+  }
+
+  /* ============== Form Elements ============== */
+  h2.section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--muted);
+    margin: 18px 0 8px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  input[type="text"], textarea, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--ink);
+    background: #fff;
+    font-family: inherit;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  button {
+    cursor: pointer;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all .15s ease;
+    font-family: inherit;
+  }
+  button:hover { background: #f8f9fc; }
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  button.primary:hover { background: #4338ca; }
+  button.ghost { background: transparent; }
+  button.danger {
+    color: var(--bad);
+    border-color: var(--line);
+  }
+  button.danger:hover { background: var(--bad-soft); }
+  button.small { padding: 4px 10px; font-size: 12px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ============== MathLive math-field styling ============== */
+  math-field {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 16px;
+    background: #fff;
+    --selection-background-color: var(--accent-soft);
+    --primary: var(--accent);
+  }
+  math-field:focus, math-field[is-focused] {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  /* Hide MathLive's caret menu button by default for cleaner look */
+  math-field::part(menu-toggle) { display: none; }
+
+  /* ============== Problem List ============== */
+  .problem-list { display: flex; flex-direction: column; gap: 8px; }
+  .problem-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .problem-card.editing {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .problem-card .pc-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .problem-card .pc-num {
+    background: var(--accent-soft);
+    color: var(--accent);
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .problem-card .pc-text {
+    flex: 1;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .problem-card .pc-correct {
+    font-size: 12px;
+    color: var(--good);
+    margin-top: 4px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .problem-card .pc-distractors {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    display: flex; flex-wrap: wrap; gap: 8px;
+    align-items: center;
+  }
+  .problem-card .pc-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  /* KaTeX inline rendering inside lists - keep small */
+  .problem-card .katex { font-size: .95em; }
+
+  /* ============== Style Picker ============== */
+  .style-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .style-card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px;
+    background: #fff;
+    cursor: pointer;
+    text-align: center;
+    transition: all .15s;
+  }
+  .style-card:hover { border-color: var(--accent); }
+  .style-card.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .style-card .icon {
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .style-card .name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+
+  /* ============== Mode Toggle ============== */
+  .mode-toggle {
+    display: flex;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 3px;
+  }
+  .mode-toggle button {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    border-radius: 6px;
+  }
+  .mode-toggle button.active {
+    background: #fff;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+
+  /* ============== Maze Canvas ============== */
+  .maze-card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+    min-height: 600px;
+  }
+  .maze-card .maze-header {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .maze-card .maze-header .name-line {
+    text-align: left;
+    border-bottom: 2px solid var(--ink);
+    margin: 0 0 12px 0;
+    padding-bottom: 2px;
+    display: inline-block;
+    min-width: 250px;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .maze-card .maze-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -.5px;
+  }
+  .maze-card .maze-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .maze-svg { width: 100%; height: auto; max-width: 920px; margin: 0 auto; display: block; }
+
+  /* ============== Maze SVG styling ============== */
+  .cell-shape { fill: #fff; stroke: #1f2533; stroke-width: 2.5; }
+  .cell-shape.start { fill: #fef3c7; }
+  .cell-shape.end { fill: #dcfce7; }
+  .cell-shape.current { fill: var(--accent-soft); stroke: var(--accent); }
+  .cell-shape.visited { fill: #f1f5f9; }
+  .cell-label {
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    fill: #1f2533;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .arrow-shape {
+    fill: #fff;
+    stroke: #1f2533;
+    stroke-width: 2;
+    transition: fill .15s;
+  }
+  .arrow-shape.correct-revealed { fill: var(--good-soft); }
+  .arrow-shape.wrong-revealed { fill: var(--bad-soft); }
+  .arrow-shape.clickable { cursor: pointer; }
+  .arrow-shape.clickable:hover { fill: #f1f5f9; }
+
+  /* Math content rendered inside foreignObject */
+  .math-fo {
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: KaTeX_Main, "Times New Roman", serif;
+    color: #1f2533;
+    text-align: center;
+    padding: 4px;
+    overflow: hidden;
+    line-height: 1.1;
+  }
+  .math-fo .katex { font-size: inherit; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state h3 { margin: 8px 0; color: var(--ink-soft); font-weight: 600; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 580px;
+    width: 92%;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(0,0,0,.2);
+  }
+  .modal h2 { margin: 0 0 16px; font-size: 18px; }
+  .modal .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .modal .actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .modal .distractor-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .modal .distractor-row math-field { flex: 1; min-height: 38px; font-size: 14px; }
+  .modal .distractor-row .marker { color: var(--bad); font-weight: 700; width: 16px; flex-shrink: 0; }
+
+  .hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .hint code {
+    background: #f1f5f9;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    font-size: 11px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  .hint kbd {
+    background: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    box-shadow: 0 1px 0 var(--line);
+    font-size: 11px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2533;
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  /* Status banner above maze */
+  .status-banner {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-banner.success {
+    background: var(--good-soft);
+    color: var(--good);
+  }
+  .status-banner.error {
+    background: var(--bad-soft);
+    color: var(--bad);
+  }
+
+  /* ============== Print styles ============== */
+  @media print {
+    @page { size: letter portrait; margin: 0.4in; }
+    header.app-header, aside.sidebar, .maze-controls, .status-banner { display: none !important; }
+    main.app { grid-template-columns: 1fr; }
+    section.maze-area { padding: 0; }
+    .maze-card {
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      min-height: 0;
+    }
+    body { background: #fff; }
+    .arrow-shape.correct-revealed, .arrow-shape.wrong-revealed { fill: #fff !important; }
+    .cell-shape.current, .cell-shape.visited { fill: #fff !important; stroke: #1f2533 !important; }
+  }
+
+  .maze-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .maze-controls .spacer { flex: 1; }
+
+  details.help {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #f8f9fc;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+  details.help summary { cursor: pointer; font-weight: 600; }
+  details.help p { margin: 6px 0 0; line-height: 1.5; }
+  details.help .ex {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 12px;
+    margin: 6px 0;
+    align-items: center;
+  }
+  details.help .ex code { background: #fff; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); font-size: 11px; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>Math Maze Generator</h1>
+  <span class="tag">Any topic</span>
+  <div class="spacer"></div>
+  <div class="dropdown" id="dropdown-samples">
+    <button class="ghost" id="btn-samples">Load Sample ▾</button>
+    <div class="dropdown-menu">
+      <div class="label">Foundations</div>
+      <button data-sample="order-of-operations">Order of Operations</button>
+      <button data-sample="evaluating-expressions">Evaluating Algebraic Expressions</button>
+      <hr>
+      <div class="label">Equations & Inequalities</div>
+      <button data-sample="twostep">Two-Step Equations</button>
+      <button data-sample="multistep">Multi-Step Equations</button>
+      <button data-sample="literal-equations">Solving Literal Equations</button>
+      <button data-sample="inequalities-one-var">One-Variable Inequalities</button>
+      <button data-sample="compound-inequalities">Compound Inequalities</button>
+      <hr>
+      <div class="label">Functions</div>
+      <button data-sample="function-notation">Function Notation (Evaluate)</button>
+      <button data-sample="find-input">Find Input from Output</button>
+      <hr>
+      <div class="label">Lines</div>
+      <button data-sample="slope">Slope from Two Points</button>
+      <button data-sample="slope-intercept">Slope-Intercept Form</button>
+      <button data-sample="standard-to-slope-int">Standard → Slope-Intercept</button>
+      <button data-sample="parallel-lines">Parallel Lines</button>
+      <button data-sample="perpendicular-lines">Perpendicular Lines</button>
+      <hr>
+      <div class="label">Systems of Equations</div>
+      <button data-sample="substitution">Substitution Method</button>
+      <button data-sample="elimination">Elimination Method</button>
+      <hr>
+      <div class="label">Polynomials & Factoring</div>
+      <button data-sample="add-subtract-polys">Add & Subtract Polynomials</button>
+      <button data-sample="foil">Multiplying Polynomials (FOIL)</button>
+      <button data-sample="trinomial-trinomial">Trinomial × Trinomial</button>
+      <button data-sample="factor-gcf">Factor with GCF</button>
+      <button data-sample="factoring">Factoring Trinomials (a = 1)</button>
+      <button data-sample="factoring-a">Factoring Trinomials (a ≠ 1)</button>
+      <hr>
+      <div class="label">Quadratics</div>
+      <button data-sample="quadratics">Solving Quadratics</button>
+      <hr>
+      <div class="label">Radicals</div>
+      <button data-sample="radicals">Simplifying Radicals (Numeric)</button>
+      <button data-sample="radicals-vars">Simplifying Radicals w/ Variables</button>
+      <button data-sample="radicals-add-sub">Add & Subtract Radicals</button>
+      <button data-sample="rationalize">Rationalizing the Denominator</button>
+      <hr>
+      <div class="label">Exponents & Exponentials</div>
+      <button data-sample="exponents">Exponent Rules</button>
+      <button data-sample="exp-from-table">Exponential Function from Table</button>
+      <button data-sample="exp-decay-words">Exponential Growth/Decay Word Problems</button>
+      <hr>
+      <div class="label">Numbers & Other</div>
+      <button data-sample="fractions">Fraction Operations</button>
+      <button data-sample="word-problems">Algebra Word Problems</button>
+      <hr>
+      <button data-sample="blank">Start Blank</button>
+    </div>
+  </div>
+  <button id="btn-export" class="ghost">Export</button>
+  <button id="btn-import" class="ghost">Import</button>
+  <input type="file" id="file-import" accept=".json" hidden>
+</header>
+
+<main class="app">
+  <!-- ============== SIDEBAR ============== -->
+  <aside class="sidebar">
+
+    <!-- Maze Settings -->
+    <h2 class="section-title">Worksheet Setup</h2>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div>
+        <label for="maze-title">Maze Title</label>
+        <input type="text" id="maze-title" placeholder="e.g. Solving Equations" value="My Math Maze">
+      </div>
+      <div>
+        <label for="maze-subtitle">Subtitle (optional)</label>
+        <input type="text" id="maze-subtitle" placeholder="e.g. Period 3 — Practice Set" value="">
+      </div>
+    </div>
+
+    <!-- Style Picker -->
+    <h2 class="section-title">Maze Style</h2>
+    <div class="style-grid" id="style-grid">
+      <div class="style-card" data-style="hexagonal">
+        <div class="icon">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <polygon points="10,5 20,5 25,15 20,25 10,25 5,15" fill="none" stroke="#4f46e5" stroke-width="2"/>
+            <polygon points="30,15 40,15 45,25 40,35 30,35 25,25" fill="none" stroke="#4f46e5" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="name">Hexagonal</div>
+      </div>
+      <div class="style-card active" data-style="square">
+        <div class="icon">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <rect x="5" y="5" width="14" height="14" fill="none" stroke="#4f46e5" stroke-width="2"/>
+            <rect x="25" y="5" width="14" height="14" fill="none" stroke="#4f46e5" stroke-width="2"/>
+            <rect x="5" y="22" width="14" height="14" fill="none" stroke="#4f46e5" stroke-width="2"/>
+            <rect x="25" y="22" width="14" height="14" fill="none" stroke="#4f46e5" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="name">Grid</div>
+      </div>
+      <div class="style-card" data-style="linear">
+        <div class="icon">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <path d="M 5 8 L 45 8 L 45 20 L 5 20 L 5 32 L 45 32" fill="none" stroke="#4f46e5" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="name">Snaking Path</div>
+      </div>
+      <div class="style-card" data-style="circular">
+        <div class="icon">
+          <svg width="50" height="40" viewBox="0 0 50 40">
+            <circle cx="25" cy="20" r="15" fill="none" stroke="#4f46e5" stroke-width="2"/>
+            <circle cx="25" cy="20" r="6" fill="none" stroke="#4f46e5" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="name">Circular</div>
+      </div>
+    </div>
+
+    <!-- Mode -->
+    <h2 class="section-title">Mode</h2>
+    <div class="mode-toggle" id="mode-toggle">
+      <button data-mode="interactive" class="active">Interactive</button>
+      <button data-mode="worksheet">Worksheet</button>
+    </div>
+    <details class="help">
+      <summary>What's the difference?</summary>
+      <p><strong>Interactive:</strong> Students click answer arrows on screen — instant feedback, tracks the path from START to END.</p>
+      <p><strong>Worksheet:</strong> Static printable view (use your browser's <kbd>Print</kbd> button to make a PDF or paper copy).</p>
+    </details>
+
+    <!-- Problem List -->
+    <h2 class="section-title">Problems <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(<span id="problem-count">0</span>)</span></h2>
+    <div class="problem-list" id="problem-list"></div>
+    <div style="display:flex;gap:6px;margin-top:10px;">
+      <button id="btn-add-problem" class="primary" style="flex:1;">+ Add Problem</button>
+      <button id="btn-clear-problems" class="ghost danger" title="Clear all problems">Clear</button>
+    </div>
+    <details class="help">
+      <summary>Math input help</summary>
+      <p>Each problem and answer uses a <strong>math field</strong> — you can type math directly with intuitive shortcuts:</p>
+      <div class="ex">
+        <code>x^2</code><span>→ exponent (x²)</span>
+        <code>1/2</code><span>→ fraction (½)</span>
+        <code>sqrt(x)</code><span>→ square root (√x)</span>
+        <code>pi</code><span>→ π</span>
+        <code>+-</code><span>→ ± symbol</span>
+        <code>x_1</code><span>→ subscript</span>
+      </div>
+      <p>Click the <strong>⌨ keyboard icon</strong> in the field to open a virtual math keyboard with fractions, exponents, radicals, Greek letters, and more.</p>
+    </details>
+
+  </aside>
+
+  <!-- ============== MAZE AREA ============== -->
+  <section class="maze-area">
+
+    <div class="maze-controls" id="maze-controls">
+      <button id="btn-print" class="primary">Print / Save as PDF</button>
+      <button id="btn-reshuffle" title="Rearrange the maze layout and distractor positions">↻ Reshuffle Maze</button>
+      <button id="btn-reset-path">Reset Path</button>
+      <button id="btn-show-solution">Show Solution</button>
+      <div class="spacer"></div>
+      <span style="font-size:12px;color:var(--muted);" id="path-progress"></span>
+    </div>
+
+    <div class="status-banner" id="status-banner" style="display:none;"></div>
+
+    <div class="maze-card">
+      <div class="maze-header">
+        <div class="name-line"><strong>Name:</strong> ____________________________</div>
+        <h2 class="maze-title" id="display-title">My Math Maze</h2>
+        <div class="maze-sub" id="display-subtitle"></div>
+      </div>
+
+      <div id="maze-render-area">
+        <div class="empty-state" id="empty-state">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <polygon points="32,8 56,22 56,42 32,56 8,42 8,22" stroke="#cbd5e1" stroke-width="2.5" fill="#f8fafc"/>
+            <text x="32" y="36" text-anchor="middle" font-size="18" font-weight="700" fill="#94a3b8">?</text>
+          </svg>
+          <h3>Add some problems to build your maze</h3>
+          <p style="font-size:13px;margin:0 0 12px;">You'll need at least 3 problems. Try a sample set to see how it works.</p>
+          <button id="btn-load-sample-empty" class="primary">Load a Sample</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<!-- Problem Editor Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <h2 id="modal-title">Add Problem</h2>
+    <div class="form-grid">
+      <div>
+        <label for="m-problem">Problem (what students see in the cell)</label>
+        <math-field id="m-problem"></math-field>
+        <div class="hint">Type math naturally — use <code>x^2</code> for exponents, <code>1/2</code> for fractions, <code>sqrt()</code> for radicals.</div>
+      </div>
+      <div>
+        <label for="m-correct">Correct Answer</label>
+        <math-field id="m-correct"></math-field>
+      </div>
+      <div>
+        <label>Wrong Answers (3 distractor choices)</label>
+        <div id="distractor-rows"></div>
+        <button id="btn-regenerate-distractors" class="ghost small" type="button">↻ Auto-suggest distractors</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btn-modal-cancel">Cancel</button>
+      <button id="btn-modal-save-dup" class="ghost" title="Save and create a duplicate to edit">Save & Duplicate</button>
+      <button id="btn-modal-save-add" class="ghost">Save & Add Another</button>
+      <button id="btn-modal-save" class="primary">Save Problem</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   STATE
+   ========================================================================= */
+const state = {
+  title: "My Math Maze",
+  subtitle: "",
+  style: "square",          // hexagonal | square | linear | circular
+  mode: "interactive",         // interactive | worksheet
+  problems: [],                // [{ id, problem, correctAnswer, distractors:[] }]  -- all stored as LaTeX strings
+  pathIndex: 0,
+  selectedAnswers: {},
+  showingSolution: false,
+  editingProblemId: null,
+  // Seed for circular-maze path selection. Re-rolled on each page load and
+  // each loadSample(), but kept stable across re-renders within a session so
+  // toggling mode/style/interaction doesn't shuffle the maze.
+  circularPathSeed: Math.random(),
+  // Salt appended to distractor shuffle seeds — incremented by the Reshuffle button
+  // to produce a different connector layout without changing problem content.
+  shuffleSalt: 0,
+};
+
+/* =========================================================================
+   SAMPLE DATA — multiple topics, all stored as LaTeX
+   ========================================================================= */
+const SAMPLES = {
+  factoring: {
+    title: "Factoring Trinomials",
+    subtitle: "( a = 1 )",
+    style: "square",
+    problems: [
+      { problem: "x^2 + 8x + 12",  correctAnswer: "(x+6)(x+2)",   distractors: ["(x+3)(x+4)", "(x+8)(x+1)", "(x-6)(x-2)"] },
+      { problem: "x^2 + 2x - 80",  correctAnswer: "(x+10)(x-8)",  distractors: ["(x+8)(x-9)", "(x-10)(x+8)", "(x+10)(x+8)"] },
+      { problem: "x^2 - 4x - 32",  correctAnswer: "(x-8)(x+4)",   distractors: ["(x-6)(x-4)", "(x+8)(x-4)", "(x-8)(x-4)"] },
+      { problem: "x^2 + x - 72",   correctAnswer: "(x+9)(x-8)",   distractors: ["(x-9)(x+8)", "(x+6)(x+3)", "(x-9)(x-8)"] },
+      { problem: "x^2 + 9x + 18",  correctAnswer: "(x+6)(x+3)",   distractors: ["(x+9)(x+2)", "(x-6)(x-3)", "(x+18)(x+1)"] },
+      { problem: "x^2 - 5x - 24",  correctAnswer: "(x-8)(x+3)",   distractors: ["(x-6)(x-3)", "(x+8)(x-3)", "(x-8)(x-3)"] },
+      { problem: "x^2 - 7x + 10",  correctAnswer: "(x-2)(x-5)",   distractors: ["(x-10)(x+1)", "(x+2)(x+5)", "(x-10)(x-1)"] },
+      { problem: "x^2 - x - 12",   correctAnswer: "(x-4)(x+3)",   distractors: ["(x+4)(x-3)", "(x-6)(x+2)", "(x-4)(x-3)"] },
+      { problem: "x^2 - 6x + 5",   correctAnswer: "(x-5)(x-1)",   distractors: ["(x-5)(x+1)", "(x+5)(x-1)", "(x-3)(x-2)"] },
+      { problem: "x^2 + 13x + 42", correctAnswer: "(x+6)(x+7)",   distractors: ["(x+2)(x+5)", "(x+3)(x+14)", "(x+6)(x-7)"] },
+      { problem: "x^2 + 11x + 30", correctAnswer: "(x+5)(x+6)",   distractors: ["(x+10)(x+3)", "(x-5)(x-6)", "(x+15)(x+2)"] },
+    ],
+  },
+  twostep: {
+    title: "Two-Step Equations",
+    subtitle: "Solve for x",
+    style: "square",
+    problems: [
+      { problem: "2x + 5 = 11",        correctAnswer: "x = 3",   distractors: ["x = 8", "x = -3", "x = 6"] },
+      { problem: "3x - 7 = 8",         correctAnswer: "x = 5",   distractors: ["x = 1/3", "x = 15", "x = -5"] },
+      { problem: "\\frac{x}{4} + 2 = 6", correctAnswer: "x = 16", distractors: ["x = 2", "x = 32", "x = 1"] },
+      { problem: "5x + 12 = -3",       correctAnswer: "x = -3",  distractors: ["x = 3", "x = -9", "x = 9/5"] },
+      { problem: "-2x + 9 = 1",        correctAnswer: "x = 4",   distractors: ["x = -4", "x = 5", "x = -5"] },
+      { problem: "\\frac{x}{3} - 5 = -2", correctAnswer: "x = 9", distractors: ["x = -9", "x = 21", "x = -21"] },
+      { problem: "7 - 4x = 19",        correctAnswer: "x = -3",  distractors: ["x = 3", "x = -13/2", "x = 6"] },
+      { problem: "6x + 1 = 25",        correctAnswer: "x = 4",   distractors: ["x = 24", "x = -4", "x = 1/6"] },
+      { problem: "10 = 2x - 4",        correctAnswer: "x = 7",   distractors: ["x = 3", "x = -7", "x = 14"] },
+      { problem: "7x + 5 = 19",        correctAnswer: "x = 2",   distractors: ["x = -2", "x = \\frac{24}{7}", "x = 12"] },
+      { problem: "2 - 3x = 14",        correctAnswer: "x = -4",  distractors: ["x = 4", "x = -\\frac{16}{3}", "x = 12"] },
+    ],
+  },
+  slope: {
+    title: "Slope from Two Points",
+    subtitle: "Find m given (x_1, y_1) and (x_2, y_2)",
+    style: "square",
+    problems: [
+      { problem: "(2, 5) \\text{ and } (4, 9)",   correctAnswer: "m = 2",            distractors: ["m = -2", "m = \\frac{1}{2}", "m = 4"] },
+      { problem: "(1, 3) \\text{ and } (4, 12)",  correctAnswer: "m = 3",            distractors: ["m = \\frac{1}{3}", "m = -3", "m = 9"] },
+      { problem: "(0, -1) \\text{ and } (3, 5)",  correctAnswer: "m = 2",            distractors: ["m = \\frac{1}{2}", "m = -2", "m = 6"] },
+      { problem: "(2, 8) \\text{ and } (6, 0)",   correctAnswer: "m = -2",           distractors: ["m = 2", "m = -\\frac{1}{2}", "m = -8"] },
+      { problem: "(-1, 4) \\text{ and } (3, -4)", correctAnswer: "m = -2",           distractors: ["m = 2", "m = -\\frac{1}{2}", "m = -8"] },
+      { problem: "(5, 2) \\text{ and } (9, 4)",   correctAnswer: "m = \\frac{1}{2}", distractors: ["m = 2", "m = -\\frac{1}{2}", "m = \\frac{2}{4}"] },
+      { problem: "(-3, 1) \\text{ and } (3, -5)", correctAnswer: "m = -1",           distractors: ["m = 1", "m = -6", "m = -\\frac{1}{6}"] },
+      { problem: "(4, 7) \\text{ and } (4, 2)",   correctAnswer: "m = \\text{undefined}", distractors: ["m = 0", "m = 5", "m = -5"] },
+      { problem: "(-2, 6) \\text{ and } (3, 6)",  correctAnswer: "m = 0",            distractors: ["m = \\text{undefined}", "m = 6", "m = -6"] },
+      { problem: "(1, 5) \\text{ and } (4, -4)",  correctAnswer: "m = -3",           distractors: ["m = 3", "m = -\\frac{1}{3}", "m = -9"] },
+      { problem: "(1, 1) \\text{ and } (5, 17)",  correctAnswer: "m = 4",            distractors: ["m = -4", "m = \\frac{1}{4}", "m = 16"] },
+    ],
+  },
+  exponents: {
+    title: "Exponent Rules",
+    subtitle: "Simplify each expression",
+    style: "square",
+    problems: [
+      { problem: "x^3 \\cdot x^4",         correctAnswer: "x^7",   distractors: ["x^{12}", "x^1", "2x^7"] },
+      { problem: "(x^2)^5",                correctAnswer: "x^{10}", distractors: ["x^7", "x^{2.5}", "5x^2"] },
+      { problem: "\\frac{x^8}{x^3}",       correctAnswer: "x^5",   distractors: ["x^{11}", "x^{8/3}", "x^{-5}"] },
+      { problem: "(2x^3)^2",               correctAnswer: "4x^6",  distractors: ["2x^6", "4x^5", "2x^5"] },
+      { problem: "x^0",                    correctAnswer: "1",     distractors: ["0", "x", "-1"] },
+      { problem: "x^{-2}",                 correctAnswer: "\\frac{1}{x^2}", distractors: ["-x^2", "-2x", "\\frac{-1}{x^2}"] },
+      { problem: "x^5 \\cdot x^{-2}",      correctAnswer: "x^3",   distractors: ["x^{-10}", "x^7", "\\frac{1}{x^3}"] },
+      { problem: "(3x^2y)^3",              correctAnswer: "27x^6y^3", distractors: ["9x^6y^3", "27x^5y^3", "3x^6y^3"] },
+      { problem: "\\frac{(x^4)^2}{x^3}",   correctAnswer: "x^5",   distractors: ["x^{11}", "x^{8/3}", "x^{-5}"] },
+      { problem: "x^4 \\cdot x^2",         correctAnswer: "x^6",   distractors: ["x^8", "x^2", "2x^6"] },
+      { problem: "(xy)^4",                 correctAnswer: "x^4 y^4", distractors: ["x^4 y", "xy^4", "4xy"] },
+    ],
+  },
+  fractions: {
+    title: "Fraction Operations",
+    subtitle: "Simplify each",
+    style: "square",
+    problems: [
+      { problem: "\\frac{1}{2} + \\frac{1}{4}",   correctAnswer: "\\frac{3}{4}",  distractors: ["\\frac{2}{6}", "\\frac{1}{6}", "\\frac{2}{8}"] },
+      { problem: "\\frac{2}{3} - \\frac{1}{6}",   correctAnswer: "\\frac{1}{2}",  distractors: ["\\frac{1}{3}", "\\frac{3}{6}", "\\frac{2}{6}"] },
+      { problem: "\\frac{3}{5} \\cdot \\frac{2}{7}", correctAnswer: "\\frac{6}{35}", distractors: ["\\frac{5}{12}", "\\frac{6}{12}", "\\frac{1}{6}"] },
+      { problem: "\\frac{4}{9} \\div \\frac{2}{3}", correctAnswer: "\\frac{2}{3}", distractors: ["\\frac{8}{27}", "\\frac{6}{18}", "\\frac{12}{18}"] },
+      { problem: "\\frac{5}{8} + \\frac{1}{4}",   correctAnswer: "\\frac{7}{8}",  distractors: ["\\frac{6}{12}", "\\frac{6}{8}", "\\frac{5}{12}"] },
+      { problem: "\\frac{7}{10} - \\frac{3}{5}",  correctAnswer: "\\frac{1}{10}", distractors: ["\\frac{4}{5}", "\\frac{4}{10}", "\\frac{1}{5}"] },
+      { problem: "\\frac{1}{2} \\cdot \\frac{4}{5}", correctAnswer: "\\frac{2}{5}", distractors: ["\\frac{4}{10}", "\\frac{5}{8}", "\\frac{1}{10}"] },
+      { problem: "\\frac{3}{4} \\div \\frac{1}{2}", correctAnswer: "\\frac{3}{2}", distractors: ["\\frac{3}{8}", "\\frac{1}{8}", "\\frac{6}{4}"] },
+      { problem: "\\frac{2}{3} + \\frac{5}{6}",   correctAnswer: "\\frac{3}{2}",  distractors: ["\\frac{7}{9}", "\\frac{7}{6}", "\\frac{10}{18}"] },
+      { problem: "\\frac{1}{3} + \\frac{1}{2}",   correctAnswer: "\\frac{5}{6}",  distractors: ["\\frac{2}{5}", "\\frac{2}{6}", "\\frac{1}{6}"] },
+      { problem: "\\frac{2}{5} \\cdot \\frac{3}{4}", correctAnswer: "\\frac{3}{10}", distractors: ["\\frac{6}{9}", "\\frac{5}{9}", "\\frac{6}{20}"] },
+    ],
+  },
+
+  // ---------------- NEW: Multi-Step Equations ----------------
+  multistep: {
+    title: "Multi-Step Equations",
+    subtitle: "Solve for x",
+    style: "square",
+    problems: [
+      { problem: "2(x + 3) = 14",         correctAnswer: "x = 4",   distractors: ["x = 8", "x = -4", "x = 7"] },
+      { problem: "5x - 8 = 2x + 7",       correctAnswer: "x = 5",   distractors: ["x = -5", "x = \\frac{1}{3}", "x = 15"] },
+      { problem: "3x - 7 = 14",           correctAnswer: "x = 7",   distractors: ["x = -7", "x = \\frac{7}{3}", "x = 21"] },
+      { problem: "6x - 4(x + 2) = 4",     correctAnswer: "x = 6",   distractors: ["x = -6", "x = 2", "x = 12"] },
+      { problem: "7 - 3x = -2",           correctAnswer: "x = 3",   distractors: ["x = -3", "x = \\frac{5}{3}", "x = 9"] },
+      { problem: "4x + 5 = 2(x + 7)",     correctAnswer: "x = \\frac{9}{2}", distractors: ["x = 9", "x = -\\frac{9}{2}", "x = \\frac{2}{9}"] },
+      { problem: "3(2x - 1) = 5x + 8",    correctAnswer: "x = 11",  distractors: ["x = -11", "x = 5", "x = 7"] },
+      { problem: "2(x + 5) - 3(x - 1) = 4", correctAnswer: "x = 9", distractors: ["x = -9", "x = 3", "x = 7"] },
+      { problem: "-2(x - 3) = 4x - 6",    correctAnswer: "x = 2",   distractors: ["x = -2", "x = 0", "x = 4"] },
+      { problem: "3 - 2(x + 4) = 7",      correctAnswer: "x = -6",  distractors: ["x = 6", "x = -2", "x = 0"] },
+      { problem: "9 - 5x = 2(3 - x)",     correctAnswer: "x = 1",   distractors: ["x = -1", "x = 3", "x = 5"] },
+    ],
+  },
+
+  // ---------------- NEW: Multiplying Polynomials (FOIL) ----------------
+  foil: {
+    title: "Multiplying Polynomials",
+    subtitle: "Use FOIL or distribution",
+    style: "square",
+    problems: [
+      { problem: "(x + 3)(x + 5)",   correctAnswer: "x^2 + 8x + 15",   distractors: ["x^2 + 15x + 8", "x^2 + 8x + 8", "x^2 + 15"] },
+      { problem: "(x - 2)(x + 7)",   correctAnswer: "x^2 + 5x - 14",   distractors: ["x^2 - 5x - 14", "x^2 + 5x + 14", "x^2 - 14"] },
+      { problem: "(x - 4)(x - 6)",   correctAnswer: "x^2 - 10x + 24",  distractors: ["x^2 + 10x + 24", "x^2 - 10x - 24", "x^2 + 24"] },
+      { problem: "(x + 8)(x - 3)",   correctAnswer: "x^2 + 5x - 24",   distractors: ["x^2 - 5x - 24", "x^2 + 11x - 24", "x^2 + 5x + 24"] },
+      { problem: "(2x + 1)(x + 4)",  correctAnswer: "2x^2 + 9x + 4",   distractors: ["2x^2 + 8x + 4", "2x^2 + 9x + 5", "x^2 + 9x + 4"] },
+      { problem: "(3x - 2)(x + 5)",  correctAnswer: "3x^2 + 13x - 10", distractors: ["3x^2 - 13x - 10", "3x^2 + 13x + 10", "3x^2 + 17x - 10"] },
+      { problem: "(x + 6)^2",        correctAnswer: "x^2 + 12x + 36",  distractors: ["x^2 + 36", "x^2 + 6x + 36", "x^2 + 12x + 12"] },
+      { problem: "(x - 3)(x + 3)",   correctAnswer: "x^2 - 9",         distractors: ["x^2 + 9", "x^2 - 6x - 9", "x^2 - 6x + 9"] },
+      { problem: "(2x - 5)(2x + 5)", correctAnswer: "4x^2 - 25",       distractors: ["4x^2 + 25", "2x^2 - 25", "4x^2 - 20x - 25"] },
+      { problem: "(x + 5)(x - 2)",   correctAnswer: "x^2 + 3x - 10",   distractors: ["x^2 - 3x - 10", "x^2 + 7x - 10", "x^2 + 3x + 10"] },
+      { problem: "(3x + 1)(2x - 4)", correctAnswer: "6x^2 - 10x - 4",  distractors: ["6x^2 - 14x - 4", "6x^2 + 10x - 4", "6x^2 - 12x - 4"] },
+    ],
+  },
+
+  // ---------------- NEW: Factoring Trinomials, a ≠ 1 ----------------
+  "factoring-a": {
+    title: "Factoring Trinomials",
+    subtitle: "Leading coefficient \\neq 1",
+    style: "square",
+    problems: [
+      { problem: "2x^2 + 7x + 3",   correctAnswer: "(2x + 1)(x + 3)",  distractors: ["(2x + 3)(x + 1)", "(2x - 1)(x - 3)", "(x + 1)(x + 3)"] },
+      { problem: "3x^2 + 10x + 8",  correctAnswer: "(3x + 4)(x + 2)",  distractors: ["(3x + 2)(x + 4)", "(3x - 4)(x - 2)", "(x + 4)(x + 2)"] },
+      { problem: "2x^2 - 5x - 3",   correctAnswer: "(2x + 1)(x - 3)",  distractors: ["(2x - 1)(x + 3)", "(2x + 3)(x - 1)", "(2x - 3)(x + 1)"] },
+      { problem: "5x^2 + 13x + 6",  correctAnswer: "(5x + 3)(x + 2)",  distractors: ["(5x + 2)(x + 3)", "(5x - 3)(x - 2)", "(5x + 6)(x + 1)"] },
+      { problem: "3x^2 - 11x + 6",  correctAnswer: "(3x - 2)(x - 3)",  distractors: ["(3x + 2)(x + 3)", "(3x - 6)(x - 1)", "(3x + 2)(x - 3)"] },
+      { problem: "4x^2 + 8x + 3",   correctAnswer: "(2x + 1)(2x + 3)", distractors: ["(4x + 1)(x + 3)", "(4x + 3)(x + 1)", "(2x - 1)(2x - 3)"] },
+      { problem: "6x^2 + x - 1",    correctAnswer: "(3x - 1)(2x + 1)", distractors: ["(3x + 1)(2x - 1)", "(6x - 1)(x + 1)", "(6x + 1)(x - 1)"] },
+      { problem: "2x^2 - 7x + 6",   correctAnswer: "(2x - 3)(x - 2)",  distractors: ["(2x + 3)(x + 2)", "(2x - 6)(x - 1)", "(2x - 1)(x - 6)"] },
+      { problem: "4x^2 - 9",        correctAnswer: "(2x - 3)(2x + 3)", distractors: ["(2x - 3)^2", "(4x - 9)(x + 1)", "(2x + 3)^2"] },
+      { problem: "6x^2 + 11x + 3",  correctAnswer: "(3x + 1)(2x + 3)", distractors: ["(6x + 3)(x + 1)", "(3x + 3)(2x + 1)", "(6x + 1)(x + 3)"] },
+      { problem: "2x^2 + x - 6",    correctAnswer: "(2x - 3)(x + 2)",  distractors: ["(2x + 3)(x - 2)", "(2x - 6)(x + 1)", "(2x + 1)(x - 3)"] },
+    ],
+  },
+
+  // ---------------- NEW: Solving Quadratics ----------------
+  quadratics: {
+    title: "Solving Quadratics",
+    subtitle: "Find all solutions",
+    style: "square",
+    problems: [
+      { problem: "x^2 - 5x + 6 = 0",  correctAnswer: "x = 2, 3",   distractors: ["x = -2, -3", "x = 5, 6", "x = 1, 6"] },
+      { problem: "x^2 + 7x + 12 = 0", correctAnswer: "x = -3, -4", distractors: ["x = 3, 4", "x = -2, -6", "x = 7, 12"] },
+      { problem: "x^2 - 9 = 0",       correctAnswer: "x = \\pm 3", distractors: ["x = 3", "x = 9", "x = \\pm 9"] },
+      { problem: "x^2 - 4x = 0",      correctAnswer: "x = 0, 4",   distractors: ["x = 0, -4", "x = 4", "x = -2, 2"] },
+      { problem: "2x^2 + 5x - 3 = 0", correctAnswer: "x = -3, \\frac{1}{2}", distractors: ["x = 3, -\\frac{1}{2}", "x = -3, 2", "x = 1, -3"] },
+      { problem: "x^2 - 6x + 9 = 0",  correctAnswer: "x = 3",      distractors: ["x = -3", "x = \\pm 3", "x = 3, 9"] },
+      { problem: "x^2 + 4x - 12 = 0", correctAnswer: "x = -6, 2",  distractors: ["x = 6, -2", "x = -4, 3", "x = 4, -3"] },
+      { problem: "x^2 - 2x - 8 = 0",  correctAnswer: "x = -2, 4",  distractors: ["x = 2, -4", "x = -4, 2", "x = 8, -1"] },
+      { problem: "x^2 - 8x + 12 = 0", correctAnswer: "x = 2, 6",   distractors: ["x = -2, -6", "x = 4, 3", "x = 8, 12"] },
+      { problem: "x^2 + 5x = 0",      correctAnswer: "x = 0, -5",  distractors: ["x = 5, 0", "x = -5", "x = 5, -5"] },
+      { problem: "2x^2 - 8 = 0",      correctAnswer: "x = \\pm 2", distractors: ["x = 4", "x = \\pm 4", "x = 2"] },
+    ],
+  },
+
+  // ---------------- NEW: Function Notation ----------------
+  "function-notation": {
+    title: "Function Notation",
+    subtitle: "Evaluate each function",
+    style: "square",
+    problems: [
+      { problem: "f(x) = 2x + 5,\\ f(3) = ?",        correctAnswer: "11", distractors: ["8", "13", "6"] },
+      { problem: "f(x) = x^2 - 4,\\ f(-2) = ?",      correctAnswer: "0",  distractors: ["8", "-8", "4"] },
+      { problem: "f(x) = 3x - 7,\\ f(0) = ?",        correctAnswer: "-7", distractors: ["7", "0", "-3"] },
+      { problem: "f(x) = -x + 6,\\ f(4) = ?",        correctAnswer: "2",  distractors: ["-2", "10", "-10"] },
+      { problem: "f(x) = x^2 + 2x,\\ f(-3) = ?",     correctAnswer: "3",  distractors: ["-3", "15", "-15"] },
+      { problem: "f(x) = 4 - 2x,\\ f(5) = ?",        correctAnswer: "-6", distractors: ["6", "-14", "14"] },
+      { problem: "g(x) = x^2 - 5,\\ g(-4) = ?",      correctAnswer: "11", distractors: ["-1", "21", "-21"] },
+      { problem: "h(x) = 2x^2 - 3x + 1,\\ h(2) = ?", correctAnswer: "3",  distractors: ["-3", "11", "15"] },
+      { problem: "f(x) = \\frac{x-1}{2},\\ f(7) = ?", correctAnswer: "3", distractors: ["4", "6", "\\frac{1}{3}"] },
+      { problem: "f(x) = 5x - 1,\\ f(4) = ?",         correctAnswer: "19", distractors: ["16", "21", "-21"] },
+      { problem: "f(x) = x^2 + 3,\\ f(2) = ?",        correctAnswer: "7",  distractors: ["10", "13", "1"] },
+    ],
+  },
+
+  // ---------------- NEW: Simplifying Radicals ----------------
+  radicals: {
+    title: "Simplifying Radicals",
+    subtitle: "Reduce to simplest form",
+    style: "square",
+    problems: [
+      { problem: "\\sqrt{72}",   correctAnswer: "6\\sqrt{2}",  distractors: ["6\\sqrt{12}", "8\\sqrt{2}", "2\\sqrt{6}"] },
+      { problem: "\\sqrt{50}",   correctAnswer: "5\\sqrt{2}",  distractors: ["2\\sqrt{5}", "5\\sqrt{10}", "10\\sqrt{5}"] },
+      { problem: "\\sqrt{48}",   correctAnswer: "4\\sqrt{3}",  distractors: ["3\\sqrt{4}", "4\\sqrt{12}", "8\\sqrt{6}"] },
+      { problem: "\\sqrt{98}",   correctAnswer: "7\\sqrt{2}",  distractors: ["2\\sqrt{7}", "7\\sqrt{14}", "9\\sqrt{2}"] },
+      { problem: "\\sqrt{27}",   correctAnswer: "3\\sqrt{3}",  distractors: ["3\\sqrt{9}", "9\\sqrt{3}", "\\sqrt{9}"] },
+      { problem: "\\sqrt{200}",  correctAnswer: "10\\sqrt{2}", distractors: ["2\\sqrt{10}", "20\\sqrt{2}", "10\\sqrt{20}"] },
+      { problem: "\\sqrt{75}",   correctAnswer: "5\\sqrt{3}",  distractors: ["3\\sqrt{5}", "5\\sqrt{15}", "15\\sqrt{5}"] },
+      { problem: "2\\sqrt{18}",  correctAnswer: "6\\sqrt{2}",  distractors: ["2\\sqrt{2}", "6\\sqrt{6}", "12\\sqrt{2}"] },
+      { problem: "\\sqrt{45}",   correctAnswer: "3\\sqrt{5}",  distractors: ["5\\sqrt{3}", "3\\sqrt{15}", "9\\sqrt{5}"] },
+      { problem: "\\sqrt{32}",   correctAnswer: "4\\sqrt{2}",  distractors: ["2\\sqrt{8}", "8\\sqrt{2}", "16\\sqrt{2}"] },
+      { problem: "\\sqrt{12}",   correctAnswer: "2\\sqrt{3}",  distractors: ["3\\sqrt{2}", "2\\sqrt{6}", "4\\sqrt{3}"] },
+    ],
+  },
+
+  // ---------------- NEW: Slope-Intercept Form ----------------
+  "slope-intercept": {
+    title: "Slope-Intercept Form",
+    subtitle: "Write y = mx + b",
+    style: "square",
+    problems: [
+      { problem: "\\text{Slope } 3,\\ y\\text{-int } -5",            correctAnswer: "y = 3x - 5",            distractors: ["y = -3x - 5", "y = 3x + 5", "y = -5x + 3"] },
+      { problem: "\\text{Slope } -2,\\ y\\text{-int } 4",            correctAnswer: "y = -2x + 4",           distractors: ["y = 2x + 4", "y = -2x - 4", "y = 4x - 2"] },
+      { problem: "\\text{Slope } \\frac{1}{2},\\ y\\text{-int } 7",  correctAnswer: "y = \\frac{1}{2}x + 7", distractors: ["y = 2x + 7", "y = \\frac{1}{2}x - 7", "y = 7x + \\frac{1}{2}"] },
+      { problem: "\\text{Through }(2, 5),\\ m = 3",                  correctAnswer: "y = 3x - 1",            distractors: ["y = 3x + 5", "y = 3x + 1", "y = 5x - 3"] },
+      { problem: "\\text{Through }(-1, 4),\\ m = -2",                correctAnswer: "y = -2x + 2",           distractors: ["y = -2x + 4", "y = -2x - 2", "y = 2x + 6"] },
+      { problem: "\\text{Through }(0, -3) \\text{ and } (2, 1)",     correctAnswer: "y = 2x - 3",            distractors: ["y = -2x - 3", "y = 2x + 3", "y = -2x + 3"] },
+      { problem: "\\text{Through }(1, 1) \\text{ and } (3, 9)",      correctAnswer: "y = 4x - 3",            distractors: ["y = 4x + 1", "y = -4x + 5", "y = 2x - 1"] },
+      { problem: "\\text{Horizontal line through }(3, 4)",           correctAnswer: "y = 4",                 distractors: ["x = 3", "y = 3", "x = 4"] },
+      { problem: "\\text{Through }(-2, 5) \\text{ and } (4, -7)",    correctAnswer: "y = -2x + 1",           distractors: ["y = 2x - 1", "y = -2x - 1", "y = -3x + 1"] },
+      { problem: "\\text{Slope } 2,\\ y\\text{-int } 0",              correctAnswer: "y = 2x",                distractors: ["y = -2x", "y = 2x + 1", "y = x + 2"] },
+      { problem: "\\text{Through }(5, 0) \\text{ and } (0, 5)",       correctAnswer: "y = -x + 5",            distractors: ["y = x + 5", "y = -x - 5", "y = x - 5"] },
+    ],
+  },
+
+  // ---------------- NEW: Algebra Word Problems ----------------
+  "word-problems": {
+    title: "Algebra Word Problems",
+    subtitle: "Translate, then solve",
+    style: "square",
+    problems: [
+      { problem: "\\text{Sum is 30, diff is 4. Smaller?}",           correctAnswer: "13",     distractors: ["17", "11", "15"] },
+      { problem: "2n + 5 = 21\\text{. Find } n.",                    correctAnswer: "n = 8",  distractors: ["n = 13", "n = -8", "n = 16"] },
+      { problem: "3n - 5 = 22\\text{. Find } n.",                    correctAnswer: "n = 9",  distractors: ["n = 27", "n = -9", "n = 7"] },
+      { problem: "\\text{Rect: } w = 4,\\ \\ell = w + 3.\\ \\text{Area?}", correctAnswer: "28", distractors: ["12", "14", "16"] },
+      { problem: "\\text{Square perimeter} = 40.\\ \\text{Side?}",   correctAnswer: "10",     distractors: ["20", "8", "160"] },
+      { problem: "\\text{180 mi at 60 mph. Hours?}",                 correctAnswer: "3",      distractors: ["120", "\\frac{1}{3}", "60"] },
+      { problem: "\\text{20\\% off } \\$50.\\ \\text{Sale price?}",  correctAnswer: "\\$40",  distractors: ["\\$10", "\\$30", "\\$60"] },
+      { problem: "\\text{15\\% tip on a } \\$60 \\text{ bill. Tip?}", correctAnswer: "\\$9",  distractors: ["\\$6", "\\$15", "\\$0.90"] },
+      { problem: "\\text{Two consec ints sum to 47. Smaller?}",      correctAnswer: "23",     distractors: ["24", "22", "46"] },
+      { problem: "\\text{6 apples cost } \\$3.60.\\ \\text{One apple?}", correctAnswer: "\\$0.60", distractors: ["\\$0.50", "\\$1.20", "\\$0.06"] },
+      { problem: "\\frac{n}{2} + 3 = 11.\\ n = ?",                    correctAnswer: "n = 16", distractors: ["n = 8", "n = 22", "n = 7"] },
+    ],
+  },
+
+  // ---------------- NEW: Order of Operations ----------------
+  "order-of-operations": {
+    title: "Order of Operations",
+    subtitle: "Simplify each expression",
+    style: "square",
+    problems: [
+      { problem: "3 + 4 \\cdot 2",            correctAnswer: "11", distractors: ["14", "10", "8"] },
+      { problem: "(8 - 3) \\cdot 2 + 1",      correctAnswer: "11", distractors: ["7", "9", "13"] },
+      { problem: "2^3 + 4 \\cdot 5",          correctAnswer: "28", distractors: ["64", "60", "30"] },
+      { problem: "20 - 6 \\div 2",            correctAnswer: "17", distractors: ["7", "20", "5"] },
+      { problem: "(3 + 2)^2 - 4",             correctAnswer: "21", distractors: ["13", "5", "9"] },
+      { problem: "12 \\div 3 \\cdot 2",       correctAnswer: "8",  distractors: ["2", "4", "12"] },
+      { problem: "5 + 3(4 - 1)",              correctAnswer: "14", distractors: ["24", "11", "12"] },
+      { problem: "(7 - 2)^2 + 1",             correctAnswer: "26", distractors: ["45", "50", "10"] },
+      { problem: "10 - 2 \\cdot 3 + 4",       correctAnswer: "8",  distractors: ["28", "-2", "20"] },
+      { problem: "\\frac{6 + 2}{4}",          correctAnswer: "2",  distractors: ["6.5", "8", "1.5"] },
+      { problem: "2(5 - 3)^2",                correctAnswer: "8",  distractors: ["16", "4", "10"] },
+    ],
+  },
+
+  // ---------------- NEW: Evaluating Algebraic Expressions ----------------
+  "evaluating-expressions": {
+    title: "Evaluating Algebraic Expressions",
+    subtitle: "Substitute and simplify",
+    style: "square",
+    problems: [
+      { problem: "2x + 5,\\ x = 3",                       correctAnswer: "11", distractors: ["8", "13", "16"] },
+      { problem: "3x - 7,\\ x = 4",                       correctAnswer: "5",  distractors: ["19", "-5", "12"] },
+      { problem: "x^2 + 1,\\ x = -2",                     correctAnswer: "5",  distractors: ["-3", "3", "-5"] },
+      { problem: "5 - 2x,\\ x = 4",                       correctAnswer: "-3", distractors: ["3", "13", "-13"] },
+      { problem: "4x + 3y,\\ x = 2,\\ y = -1",            correctAnswer: "5",  distractors: ["11", "-5", "-1"] },
+      { problem: "x^2 - y,\\ x = 3,\\ y = 4",             correctAnswer: "5",  distractors: ["-1", "13", "23"] },
+      { problem: "\\frac{x + 6}{2},\\ x = 4",             correctAnswer: "5",  distractors: ["10", "8", "3"] },
+      { problem: "2x^2 - x,\\ x = -3",                    correctAnswer: "21", distractors: ["-15", "15", "-21"] },
+      { problem: "ab - c,\\ a = 5,\\ b = 2,\\ c = 4",     correctAnswer: "6",  distractors: ["14", "26", "-6"] },
+      { problem: "x(y + z),\\ x = 4,\\ y = 1,\\ z = 2",   correctAnswer: "12", distractors: ["7", "9", "24"] },
+      { problem: "x^2 + 2x + 1,\\ x = 3",                 correctAnswer: "16", distractors: ["10", "13", "22"] },
+    ],
+  },
+
+  // ---------------- NEW: Solving Literal Equations ----------------
+  "literal-equations": {
+    title: "Solving Literal Equations",
+    subtitle: "Solve for the indicated variable",
+    style: "square",
+    problems: [
+      { problem: "P = 2\\ell + 2w.\\ \\text{Solve } \\ell",       correctAnswer: "\\ell = \\frac{P - 2w}{2}",  distractors: ["\\ell = P - 2w", "\\ell = \\frac{P}{2} - 2w", "\\ell = \\frac{P + 2w}{2}"] },
+      { problem: "A = \\ell w.\\ \\text{Solve } w",                correctAnswer: "w = \\frac{A}{\\ell}",        distractors: ["w = A - \\ell", "w = A\\ell", "w = \\frac{\\ell}{A}"] },
+      { problem: "d = rt.\\ \\text{Solve } t",                     correctAnswer: "t = \\frac{d}{r}",            distractors: ["t = dr", "t = d - r", "t = \\frac{r}{d}"] },
+      { problem: "y = mx + b.\\ \\text{Solve } x",                 correctAnswer: "x = \\frac{y - b}{m}",        distractors: ["x = \\frac{y + b}{m}", "x = y - b - m", "x = \\frac{y}{m} - b"] },
+      { problem: "A = \\frac{1}{2}bh.\\ \\text{Solve } h",         correctAnswer: "h = \\frac{2A}{b}",           distractors: ["h = \\frac{A}{2b}", "h = 2A - b", "h = \\frac{b}{2A}"] },
+      { problem: "C = 2\\pi r.\\ \\text{Solve } r",                correctAnswer: "r = \\frac{C}{2\\pi}",        distractors: ["r = \\frac{2\\pi}{C}", "r = C - 2\\pi", "r = 2\\pi C"] },
+      { problem: "F = \\frac{9}{5}C + 32.\\ \\text{Solve } C",     correctAnswer: "C = \\frac{5(F - 32)}{9}",    distractors: ["C = \\frac{9(F - 32)}{5}", "C = \\frac{5F - 32}{9}", "C = \\frac{5F}{9} - 32"] },
+      { problem: "ax + b = c.\\ \\text{Solve } x",                 correctAnswer: "x = \\frac{c - b}{a}",        distractors: ["x = c - b - a", "x = \\frac{c + b}{a}", "x = \\frac{c}{a} - b"] },
+      { problem: "I = Prt.\\ \\text{Solve } r",                    correctAnswer: "r = \\frac{I}{Pt}",           distractors: ["r = IPt", "r = I - Pt", "r = \\frac{Pt}{I}"] },
+      { problem: "V = \\ell w h.\\ \\text{Solve } h",              correctAnswer: "h = \\frac{V}{\\ell w}",      distractors: ["h = V - \\ell w", "h = V\\ell w", "h = \\frac{\\ell w}{V}"] },
+      { problem: "3x + 2y = 12.\\ \\text{Solve } y",               correctAnswer: "y = \\frac{12 - 3x}{2}",      distractors: ["y = 12 - 3x", "y = 6 - 3x", "y = \\frac{3x - 12}{2}"] },
+    ],
+  },
+
+  // ---------------- NEW: One-Variable Inequalities ----------------
+  "inequalities-one-var": {
+    title: "One-Variable Inequalities",
+    subtitle: "Solve for x",
+    style: "square",
+    problems: [
+      { problem: "x + 5 > 8",            correctAnswer: "x > 3",      distractors: ["x > 13", "x < 3", "x \\geq 3"] },
+      { problem: "2x - 4 \\leq 10",      correctAnswer: "x \\leq 7",  distractors: ["x \\geq 7", "x < 7", "x \\leq 3"] },
+      { problem: "-3x > 12",             correctAnswer: "x < -4",     distractors: ["x > -4", "x > 4", "x < 4"] },
+      { problem: "5x + 2 \\geq 17",      correctAnswer: "x \\geq 3",  distractors: ["x \\leq 3", "x \\geq 19", "x > 3"] },
+      { problem: "-2x + 5 < 1",          correctAnswer: "x > 2",      distractors: ["x < 2", "x > -2", "x < -2"] },
+      { problem: "\\frac{x}{4} \\geq 3", correctAnswer: "x \\geq 12", distractors: ["x \\leq 12", "x \\geq \\frac{3}{4}", "x > 12"] },
+      { problem: "6 - 2x \\leq 14",      correctAnswer: "x \\geq -4", distractors: ["x \\leq -4", "x \\geq 4", "x \\leq 4"] },
+      { problem: "4(x - 1) > 8",         correctAnswer: "x > 3",      distractors: ["x < 3", "x > 2", "x > 9"] },
+      { problem: "-\\frac{x}{2} \\leq 5", correctAnswer: "x \\geq -10", distractors: ["x \\leq -10", "x \\leq 10", "x \\geq 10"] },
+      { problem: "3x + 1 < 2x + 7",      correctAnswer: "x < 6",      distractors: ["x > 6", "x < -6", "x < 8"] },
+      { problem: "5 - x \\geq 2",        correctAnswer: "x \\leq 3",  distractors: ["x \\geq 3", "x \\leq 7", "x \\geq -3"] },
+    ],
+  },
+
+  // ---------------- NEW: Compound Inequalities ----------------
+  "compound-inequalities": {
+    title: "Compound Inequalities",
+    subtitle: "Solve for x",
+    style: "square",
+    problems: [
+      { problem: "-3 < x + 2 < 7",                       correctAnswer: "-5 < x < 5",                       distractors: ["-1 < x < 9", "-5 < x < 9", "-1 < x < 5"] },
+      { problem: "2 \\leq 2x - 4 \\leq 10",              correctAnswer: "3 \\leq x \\leq 7",                distractors: ["1 \\leq x \\leq 5", "-1 \\leq x \\leq 3", "2 \\leq x \\leq 5"] },
+      { problem: "x < 1 \\text{ or } x > 5",             correctAnswer: "x < 1 \\text{ or } x > 5",         distractors: ["1 < x < 5", "x > 1 \\text{ and } x < 5", "x \\geq 1 \\text{ or } x \\leq 5"] },
+      { problem: "-1 \\leq 3x + 2 \\leq 11",             correctAnswer: "-1 \\leq x \\leq 3",               distractors: ["-1 \\leq x \\leq 9", "1 \\leq x \\leq 3", "-3 \\leq x \\leq 9"] },
+      { problem: "4 < x - 3 < 10",                       correctAnswer: "7 < x < 13",                       distractors: ["1 < x < 7", "1 < x < 13", "7 < x < 10"] },
+      { problem: "2x > 6 \\text{ or } x + 1 < 0",        correctAnswer: "x > 3 \\text{ or } x < -1",        distractors: ["x < 3 \\text{ or } x > -1", "-1 < x < 3", "x > 3 \\text{ and } x < -1"] },
+      { problem: "-5 \\leq 2x + 1 < 7",                  correctAnswer: "-3 \\leq x < 3",                   distractors: ["-3 < x \\leq 3", "-6 \\leq x < 6", "-3 \\leq x < 6"] },
+      { problem: "x + 4 > 10 \\text{ and } x - 1 < 9",   correctAnswer: "6 < x < 10",                       distractors: ["x > 6", "x < 10", "6 < x \\leq 10"] },
+      { problem: "0 < 4x + 8 < 12",                      correctAnswer: "-2 < x < 1",                       distractors: ["-2 < x < 3", "2 < x < 3", "0 < x < 1"] },
+      { problem: "-2 \\leq x - 5 \\leq 2",               correctAnswer: "3 \\leq x \\leq 7",                distractors: ["-7 \\leq x \\leq -3", "-2 \\leq x \\leq 2", "3 < x < 7"] },
+      { problem: "x \\leq -2 \\text{ or } x \\geq 4",    correctAnswer: "x \\leq -2 \\text{ or } x \\geq 4", distractors: ["-2 \\leq x \\leq 4", "x \\geq -2 \\text{ or } x \\leq 4", "-2 < x < 4"] },
+    ],
+  },
+
+  // ---------------- NEW: Find Input from Output ----------------
+  "find-input": {
+    title: "Find Input from Output",
+    subtitle: "Given the output, find x",
+    style: "square",
+    problems: [
+      { problem: "f(x) = 3x + 5,\\ f(x) = 11",           correctAnswer: "x = 2",  distractors: ["x = 6", "x = 38", "x = -2"] },
+      { problem: "f(x) = 2x - 7,\\ f(x) = 3",            correctAnswer: "x = 5",  distractors: ["x = -2", "x = -5", "x = 13"] },
+      { problem: "f(x) = 4x,\\ f(x) = 20",               correctAnswer: "x = 5",  distractors: ["x = 80", "x = 16", "x = \\frac{1}{5}"] },
+      { problem: "f(x) = -x + 8,\\ f(x) = 3",            correctAnswer: "x = 5",  distractors: ["x = 11", "x = -5", "x = -11"] },
+      { problem: "f(x) = 5x - 2,\\ f(x) = 13",           correctAnswer: "x = 3",  distractors: ["x = -3", "x = 11", "x = \\frac{11}{5}"] },
+      { problem: "f(x) = \\frac{x}{2} + 1,\\ f(x) = 4",  correctAnswer: "x = 6",  distractors: ["x = 3", "x = 10", "x = -6"] },
+      { problem: "f(x) = -2x + 1,\\ f(x) = -9",          correctAnswer: "x = 5",  distractors: ["x = -5", "x = -4", "x = 4"] },
+      { problem: "f(x) = 6x + 3,\\ f(x) = 27",           correctAnswer: "x = 4",  distractors: ["x = 5", "x = -4", "x = 30"] },
+      { problem: "f(x) = 3 - x,\\ f(x) = 7",             correctAnswer: "x = -4", distractors: ["x = 4", "x = 10", "x = -10"] },
+      { problem: "f(x) = \\frac{x + 1}{3},\\ f(x) = 2",  correctAnswer: "x = 5",  distractors: ["x = 7", "x = -1", "x = -7"] },
+      { problem: "f(x) = 7x + 1,\\ f(x) = 50",           correctAnswer: "x = 7",  distractors: ["x = 6", "x = 8", "x = 49"] },
+    ],
+  },
+
+  // ---------------- NEW: Standard → Slope-Intercept ----------------
+  "standard-to-slope-int": {
+    title: "Standard \\to Slope-Intercept",
+    subtitle: "Rewrite as y = mx + b",
+    style: "square",
+    problems: [
+      { problem: "2x + y = 7",     correctAnswer: "y = -2x + 7",            distractors: ["y = 2x + 7", "y = -2x - 7", "y = 2x - 7"] },
+      { problem: "3x + y = -4",    correctAnswer: "y = -3x - 4",            distractors: ["y = -3x + 4", "y = 3x - 4", "y = 3x + 4"] },
+      { problem: "x - y = 5",      correctAnswer: "y = x - 5",              distractors: ["y = -x + 5", "y = -x - 5", "y = x + 5"] },
+      { problem: "4x + 2y = 10",   correctAnswer: "y = -2x + 5",            distractors: ["y = 2x + 5", "y = -2x + 10", "y = -4x + 10"] },
+      { problem: "6x - 3y = 12",   correctAnswer: "y = 2x - 4",             distractors: ["y = -2x + 4", "y = 2x + 4", "y = -2x - 4"] },
+      { problem: "5x + y = 1",     correctAnswer: "y = -5x + 1",            distractors: ["y = 5x + 1", "y = 5x - 1", "y = -5x - 1"] },
+      { problem: "2x - 4y = 8",    correctAnswer: "y = \\frac{1}{2}x - 2",  distractors: ["y = 2x - 8", "y = -\\frac{1}{2}x + 2", "y = \\frac{1}{2}x + 2"] },
+      { problem: "x + 3y = 9",     correctAnswer: "y = -\\frac{1}{3}x + 3", distractors: ["y = \\frac{1}{3}x + 3", "y = -\\frac{1}{3}x - 3", "y = -x + 9"] },
+      { problem: "3x - y = 7",     correctAnswer: "y = 3x - 7",             distractors: ["y = -3x + 7", "y = 3x + 7", "y = -3x - 7"] },
+      { problem: "5x + 2y = 4",    correctAnswer: "y = -\\frac{5}{2}x + 2", distractors: ["y = \\frac{5}{2}x + 2", "y = -\\frac{5}{2}x - 2", "y = -5x + 4"] },
+      { problem: "-2x + y = 6",    correctAnswer: "y = 2x + 6",             distractors: ["y = -2x + 6", "y = -2x - 6", "y = 2x - 6"] },
+    ],
+  },
+
+  // ---------------- NEW: Parallel Lines ----------------
+  "parallel-lines": {
+    title: "Parallel Lines",
+    subtitle: "Write the equation in slope-intercept form",
+    style: "square",
+    problems: [
+      { problem: "\\| \\text{ to } y = 2x + 1,\\ \\text{thru }(0, 5)",                correctAnswer: "y = 2x + 5",            distractors: ["y = -2x + 5", "y = -\\frac{1}{2}x + 5", "y = \\frac{1}{2}x + 5"] },
+      { problem: "\\| \\text{ to } y = -3x + 2,\\ \\text{thru }(1, 4)",               correctAnswer: "y = -3x + 7",           distractors: ["y = 3x + 1", "y = -3x + 4", "y = \\frac{1}{3}x + 4"] },
+      { problem: "\\| \\text{ to } y = \\frac{1}{2}x - 4,\\ \\text{thru }(2, 1)",     correctAnswer: "y = \\frac{1}{2}x",     distractors: ["y = -2x + 5", "y = \\frac{1}{2}x - 1", "y = \\frac{1}{2}x + 1"] },
+      { problem: "\\| \\text{ to } y = 4x - 1,\\ \\text{thru }(-1, 2)",               correctAnswer: "y = 4x + 6",            distractors: ["y = -\\frac{1}{4}x + \\frac{7}{4}", "y = 4x - 6", "y = 4x + 2"] },
+      { problem: "\\| \\text{ to } y = -x + 3,\\ \\text{thru }(2, 5)",                correctAnswer: "y = -x + 7",            distractors: ["y = x + 3", "y = -x + 3", "y = -x - 7"] },
+      { problem: "\\| \\text{ to } y = \\frac{2}{3}x + 1,\\ \\text{thru }(3, 0)",     correctAnswer: "y = \\frac{2}{3}x - 2", distractors: ["y = -\\frac{3}{2}x + \\frac{9}{2}", "y = \\frac{2}{3}x + 2", "y = \\frac{3}{2}x - 2"] },
+      { problem: "\\| \\text{ to } y = 5,\\ \\text{thru }(2, -3)",                    correctAnswer: "y = -3",                distractors: ["x = 2", "y = 5", "x = -3"] },
+      { problem: "\\| \\text{ to } x = 4,\\ \\text{thru }(7, 1)",                     correctAnswer: "x = 7",                 distractors: ["y = 1", "x = 4", "y = 7"] },
+      { problem: "\\| \\text{ to } y = -2x,\\ \\text{thru }(1, 3)",                   correctAnswer: "y = -2x + 5",           distractors: ["y = -2x + 3", "y = \\frac{1}{2}x + \\frac{5}{2}", "y = 2x + 1"] },
+      { problem: "\\| \\text{ to } 2x + y = 6,\\ \\text{thru }(0, 0)",                correctAnswer: "y = -2x",               distractors: ["y = 2x", "y = -2x + 6", "y = \\frac{1}{2}x"] },
+      { problem: "\\| \\text{ to } y = 3x - 5,\\ \\text{thru }(2, 0)",                correctAnswer: "y = 3x - 6",            distractors: ["y = -\\frac{1}{3}x + \\frac{2}{3}", "y = 3x + 6", "y = 3x - 2"] },
+    ],
+  },
+
+  // ---------------- NEW: Perpendicular Lines ----------------
+  "perpendicular-lines": {
+    title: "Perpendicular Lines",
+    subtitle: "Write the equation in slope-intercept form",
+    style: "square",
+    problems: [
+      { problem: "\\perp \\text{ to } y = 2x + 1,\\ \\text{thru }(0, 3)",                correctAnswer: "y = -\\frac{1}{2}x + 3",  distractors: ["y = 2x + 3", "y = -2x + 3", "y = \\frac{1}{2}x + 3"] },
+      { problem: "\\perp \\text{ to } y = -3x,\\ \\text{thru }(6, 1)",                   correctAnswer: "y = \\frac{1}{3}x - 1",   distractors: ["y = -\\frac{1}{3}x + 3", "y = 3x - 17", "y = -3x + 19"] },
+      { problem: "\\perp \\text{ to } y = \\frac{1}{4}x + 2,\\ \\text{thru }(2, 5)",     correctAnswer: "y = -4x + 13",            distractors: ["y = 4x - 3", "y = -\\frac{1}{4}x + 5", "y = -4x + 5"] },
+      { problem: "\\perp \\text{ to } y = -x + 4,\\ \\text{thru }(3, 0)",                correctAnswer: "y = x - 3",               distractors: ["y = -x + 3", "y = x + 3", "y = -x - 3"] },
+      { problem: "\\perp \\text{ to } y = \\frac{2}{3}x,\\ \\text{thru }(0, 4)",         correctAnswer: "y = -\\frac{3}{2}x + 4",  distractors: ["y = \\frac{3}{2}x + 4", "y = -\\frac{2}{3}x + 4", "y = \\frac{2}{3}x + 4"] },
+      { problem: "\\perp \\text{ to } y = 5x - 1,\\ \\text{thru }(10, 0)",               correctAnswer: "y = -\\frac{1}{5}x + 2",  distractors: ["y = 5x - 50", "y = \\frac{1}{5}x - 2", "y = -5x + 50"] },
+      { problem: "\\perp \\text{ to } y = 6,\\ \\text{thru }(3, -2)",                    correctAnswer: "x = 3",                   distractors: ["y = -2", "y = 6", "x = -2"] },
+      { problem: "\\perp \\text{ to } x = -1,\\ \\text{thru }(4, 2)",                    correctAnswer: "y = 2",                   distractors: ["x = 4", "x = -1", "y = 4"] },
+      { problem: "\\perp \\text{ to } y = -4x + 7,\\ \\text{thru }(8, 1)",               correctAnswer: "y = \\frac{1}{4}x - 1",   distractors: ["y = -4x + 33", "y = -\\frac{1}{4}x + 3", "y = 4x - 31"] },
+      { problem: "\\perp \\text{ to } y = \\frac{3}{5}x + 2,\\ \\text{thru }(3, 4)",     correctAnswer: "y = -\\frac{5}{3}x + 9",  distractors: ["y = \\frac{5}{3}x - 1", "y = -\\frac{3}{5}x + \\frac{29}{5}", "y = \\frac{3}{5}x + \\frac{11}{5}"] },
+      { problem: "\\perp \\text{ to } y = x - 5,\\ \\text{thru }(0, 0)",                 correctAnswer: "y = -x",                  distractors: ["y = x", "y = -x + 5", "y = x + 5"] },
+    ],
+  },
+
+  // ---------------- NEW: Substitution Method ----------------
+  substitution: {
+    title: "Systems: Substitution",
+    subtitle: "Solve the system",
+    style: "square",
+    problems: [
+      { problem: "y = 2x,\\ x + y = 9",                  correctAnswer: "(3, 6)", distractors: ["(6, 3)", "(9, 0)", "(-3, -6)"] },
+      { problem: "y = x + 1,\\ 2x + y = 7",              correctAnswer: "(2, 3)", distractors: ["(3, 2)", "(1, 2)", "(2, -3)"] },
+      { problem: "y = 3x - 2,\\ x + y = 6",              correctAnswer: "(2, 4)", distractors: ["(4, 2)", "(1, 1)", "(-2, -8)"] },
+      { problem: "x = y + 4,\\ 2x - y = 11",             correctAnswer: "(7, 3)", distractors: ["(3, 7)", "(11, 7)", "(4, 0)"] },
+      { problem: "y = -x + 3,\\ y = 2x - 6",             correctAnswer: "(3, 0)", distractors: ["(0, 3)", "(-3, 6)", "(2, 1)"] },
+      { problem: "y = 4x,\\ 3x + y = 14",                correctAnswer: "(2, 8)", distractors: ["(8, 2)", "(14, 0)", "(-2, -8)"] },
+      { problem: "x = 2y,\\ x + 3y = 10",                correctAnswer: "(4, 2)", distractors: ["(2, 4)", "(10, 5)", "(0, 0)"] },
+      { problem: "y = 5 - x,\\ 2x - y = 1",              correctAnswer: "(2, 3)", distractors: ["(3, 2)", "(5, 0)", "(-2, 7)"] },
+      { problem: "y = \\frac{1}{2}x,\\ x + 2y = 8",      correctAnswer: "(4, 2)", distractors: ["(2, 4)", "(8, 4)", "(0, 0)"] },
+      { problem: "x = 3y - 1,\\ 2x + y = 12",            correctAnswer: "(5, 2)", distractors: ["(2, 5)", "(11, 4)", "(-1, 0)"] },
+      { problem: "y = x - 3,\\ y = -2x + 6",             correctAnswer: "(3, 0)", distractors: ["(0, 3)", "(-3, 0)", "(2, -1)"] },
+    ],
+  },
+
+  // ---------------- NEW: Elimination Method ----------------
+  elimination: {
+    title: "Systems: Elimination",
+    subtitle: "Solve the system",
+    style: "square",
+    problems: [
+      { problem: "x + y = 8,\\ x - y = 2",        correctAnswer: "(5, 3)",   distractors: ["(3, 5)", "(8, 0)", "(10, 2)"] },
+      { problem: "2x + y = 7,\\ x - y = 2",       correctAnswer: "(3, 1)",   distractors: ["(1, 3)", "(2, 3)", "(3, -1)"] },
+      { problem: "3x + 2y = 12,\\ 3x - 2y = 0",   correctAnswer: "(2, 3)",   distractors: ["(3, 2)", "(0, 6)", "(4, 0)"] },
+      { problem: "x + 2y = 10,\\ x - 2y = -2",    correctAnswer: "(4, 3)",   distractors: ["(3, 4)", "(10, 0)", "(2, 4)"] },
+      { problem: "5x + y = 14,\\ 3x - y = 10",    correctAnswer: "(3, -1)",  distractors: ["(3, 1)", "(-1, 3)", "(1, 9)"] },
+      { problem: "x + y = 4,\\ 2x + y = 7",       correctAnswer: "(3, 1)",   distractors: ["(1, 3)", "(4, 0)", "(-1, 5)"] },
+      { problem: "2x + 3y = 12,\\ 2x - 3y = 0",   correctAnswer: "(3, 2)",   distractors: ["(2, 3)", "(6, 0)", "(0, 4)"] },
+      { problem: "3x + y = 10,\\ 3x - y = 2",     correctAnswer: "(2, 4)",   distractors: ["(4, 2)", "(2, -4)", "(0, 10)"] },
+      { problem: "x + 4y = 11,\\ x - y = 1",      correctAnswer: "(3, 2)",   distractors: ["(2, 3)", "(11, 0)", "(1, \\frac{5}{2})"] },
+      { problem: "4x + y = 9,\\ 2x - y = 3",      correctAnswer: "(2, 1)",   distractors: ["(1, 2)", "(2, -1)", "(3, -3)"] },
+      { problem: "x + y = 5,\\ x + 2y = 8",       correctAnswer: "(2, 3)",   distractors: ["(3, 2)", "(5, 0)", "(0, 5)"] },
+    ],
+  },
+
+  // ---------------- NEW: Add & Subtract Polynomials ----------------
+  "add-subtract-polys": {
+    title: "Add & Subtract Polynomials",
+    subtitle: "Simplify each expression",
+    style: "square",
+    problems: [
+      { problem: "(3x + 4) + (2x + 5)",                 correctAnswer: "5x + 9",         distractors: ["6x + 20", "5x + 20", "x + 9"] },
+      { problem: "(4x^2 + 2x) + (x^2 - 5x)",            correctAnswer: "5x^2 - 3x",      distractors: ["5x^2 + 7x", "3x^2 - 3x", "5x^2 - 7x"] },
+      { problem: "(7x - 3) - (2x + 5)",                 correctAnswer: "5x - 8",         distractors: ["5x + 2", "9x + 2", "5x + 8"] },
+      { problem: "(x^2 + 3x + 5) + (2x^2 - x + 4)",     correctAnswer: "3x^2 + 2x + 9",  distractors: ["3x^2 + 4x + 9", "x^2 + 2x + 9", "3x^2 + 2x + 1"] },
+      { problem: "(5x^2 - 2x + 1) - (x^2 + 3x - 4)",    correctAnswer: "4x^2 - 5x + 5",  distractors: ["4x^2 + x - 3", "6x^2 - 5x + 5", "4x^2 - 5x - 3"] },
+      { problem: "(6x^2 + x - 2) + (-2x^2 + 3x + 7)",   correctAnswer: "4x^2 + 4x + 5",  distractors: ["8x^2 + 4x + 5", "4x^2 - 4x + 5", "4x^2 + 4x + 9"] },
+      { problem: "(2x^3 + 4x) + (x^3 - 7x + 2)",        correctAnswer: "3x^3 - 3x + 2",  distractors: ["3x^3 + 11x + 2", "2x^3 - 3x + 2", "3x^3 - 3x - 2"] },
+      { problem: "(x^2 + 5x) - (2x^2 - 3x)",            correctAnswer: "-x^2 + 8x",      distractors: ["3x^2 + 2x", "-x^2 + 2x", "x^2 + 8x"] },
+      { problem: "(8x + 3) + (-3x - 7)",                correctAnswer: "5x - 4",         distractors: ["11x - 4", "5x + 10", "5x - 10"] },
+      { problem: "(3x^2 + 4x + 5) - (3x^2 - 4x + 5)",   correctAnswer: "8x",             distractors: ["8x + 10", "0", "6x^2"] },
+      { problem: "(4x^2 + 7) + (2x^2 - 7)",             correctAnswer: "6x^2",           distractors: ["6x^2 + 14", "8x^2", "2x^2 + 14"] },
+    ],
+  },
+
+  // ---------------- NEW: Trinomial × Trinomial ----------------
+  "trinomial-trinomial": {
+    title: "Trinomial \\times Trinomial",
+    subtitle: "Expand each product",
+    style: "square",
+    problems: [
+      { problem: "(x^2 + x + 1)(x^2 - x + 1)",    correctAnswer: "x^4 + x^2 + 1",              distractors: ["x^4 + 2x^2 + 1", "x^4 - x^2 + 1", "x^4 + 2x^3 + x^2 + 1"] },
+      { problem: "(x + 1)(x^2 + x + 1)",          correctAnswer: "x^3 + 2x^2 + 2x + 1",        distractors: ["x^3 + x^2 + x + 1", "x^3 + 2x^2 + x + 1", "x^3 + 3x^2 + 3x + 1"] },
+      { problem: "(x - 1)(x^2 + x + 1)",          correctAnswer: "x^3 - 1",                    distractors: ["x^3 + 1", "x^3 - x - 1", "x^3 - 2x^2 + 1"] },
+      { problem: "(x + 1)(x^2 - x + 1)",          correctAnswer: "x^3 + 1",                    distractors: ["x^3 - 1", "x^3 + 2x^2 + 1", "x^3 + 2x + 1"] },
+      { problem: "(x + 2)(x^2 + 3x + 1)",         correctAnswer: "x^3 + 5x^2 + 7x + 2",        distractors: ["x^3 + 5x^2 + 5x + 2", "x^3 + 3x^2 + 7x + 2", "x^3 + 6x^2 + 7x + 2"] },
+      { problem: "(x - 3)(x^2 + 2x + 5)",         correctAnswer: "x^3 - x^2 - x - 15",         distractors: ["x^3 + x^2 - x - 15", "x^3 - x^2 + x - 15", "x^3 - 5x^2 + 5x - 15"] },
+      { problem: "(2x + 1)(x^2 + x + 3)",         correctAnswer: "2x^3 + 3x^2 + 7x + 3",       distractors: ["2x^3 + x^2 + 7x + 3", "2x^3 + 3x^2 + 3x + 3", "2x^3 + 3x^2 + 6x + 3"] },
+      { problem: "(x^2 + 1)(x^2 + x + 1)",        correctAnswer: "x^4 + x^3 + 2x^2 + x + 1",   distractors: ["x^4 + x^3 + x^2 + x + 1", "x^4 + 2x^3 + 2x^2 + x + 1", "x^4 + x^3 + 2x^2 + 1"] },
+      { problem: "(x^2 + 2)(x^2 - x + 3)",        correctAnswer: "x^4 - x^3 + 5x^2 - 2x + 6",  distractors: ["x^4 - x^3 + 3x^2 - 2x + 6", "x^4 + x^3 + 5x^2 + 2x + 6", "x^4 - x^3 + 5x^2 + 2x + 6"] },
+      { problem: "(x - 1)(x^2 - 2x + 3)",         correctAnswer: "x^3 - 3x^2 + 5x - 3",        distractors: ["x^3 + 3x^2 + 5x - 3", "x^3 - 3x^2 - 5x - 3", "x^3 - x^2 + 5x - 3"] },
+      { problem: "(x + 3)(x^2 - x + 2)",          correctAnswer: "x^3 + 2x^2 - x + 6",         distractors: ["x^3 + 2x^2 + x + 6", "x^3 - 2x^2 - x + 6", "x^3 + 4x^2 - x + 6"] },
+    ],
+  },
+
+  // ---------------- NEW: Factor with GCF ----------------
+  "factor-gcf": {
+    title: "Factor with GCF",
+    subtitle: "Factor out the greatest common factor",
+    style: "square",
+    problems: [
+      { problem: "6x + 9",          correctAnswer: "3(2x + 3)",        distractors: ["3(2x + 9)", "6(x + 9)", "3x(2 + 3)"] },
+      { problem: "4x^2 + 8x",       correctAnswer: "4x(x + 2)",        distractors: ["4(x^2 + 2x)", "2x(2x + 4)", "x(4x + 8)"] },
+      { problem: "15x^2 - 10x",     correctAnswer: "5x(3x - 2)",       distractors: ["5(3x^2 - 2x)", "5x(3x + 2)", "x(15x - 10)"] },
+      { problem: "12x + 18",        correctAnswer: "6(2x + 3)",        distractors: ["3(4x + 6)", "2(6x + 9)", "6(2x + 18)"] },
+      { problem: "9x^3 - 6x^2",     correctAnswer: "3x^2(3x - 2)",     distractors: ["3x(3x^2 - 2x)", "x^2(9x - 6)", "9x^2(x - 6)"] },
+      { problem: "8x^2 + 12x",      correctAnswer: "4x(2x + 3)",       distractors: ["2x(4x + 6)", "4(2x^2 + 3x)", "x(8x + 12)"] },
+      { problem: "14x - 21",        correctAnswer: "7(2x - 3)",        distractors: ["7(2x + 3)", "7(2x - 21)", "3(14x - 21)"] },
+      { problem: "10x^4 + 5x^2",    correctAnswer: "5x^2(2x^2 + 1)",   distractors: ["5(2x^4 + x^2)", "x^2(10x^2 + 5)", "5x^2(2x^2)"] },
+      { problem: "20x - 12",        correctAnswer: "4(5x - 3)",        distractors: ["2(10x - 6)", "4(5x + 3)", "4(5x - 12)"] },
+      { problem: "6x^3 + 9x",       correctAnswer: "3x(2x^2 + 3)",     distractors: ["3(2x^3 + 3x)", "x(6x^2 + 9)", "3x(2x^2 + 9)"] },
+      { problem: "16x^2 - 24x^3",   correctAnswer: "8x^2(2 - 3x)",     distractors: ["8x(2x - 3x^2)", "2x^2(8 - 12x)", "8x^2(2 + 3x)"] },
+    ],
+  },
+
+  // ---------------- NEW: Simplifying Radicals with Variables ----------------
+  "radicals-vars": {
+    title: "Simplifying Radicals with Variables",
+    subtitle: "Assume x \\geq 0",
+    style: "square",
+    problems: [
+      { problem: "\\sqrt{x^2}",       correctAnswer: "x",                 distractors: ["2x", "x^2", "x\\sqrt{x}"] },
+      { problem: "\\sqrt{4x^2}",      correctAnswer: "2x",                distractors: ["4x", "2x^2", "x\\sqrt{2}"] },
+      { problem: "\\sqrt{25x^4}",     correctAnswer: "5x^2",              distractors: ["25x^2", "5x^4", "5x"] },
+      { problem: "\\sqrt{x^3}",       correctAnswer: "x\\sqrt{x}",        distractors: ["x^2", "\\sqrt{x^3}", "x\\sqrt{3}"] },
+      { problem: "\\sqrt{50x^2}",     correctAnswer: "5x\\sqrt{2}",       distractors: ["25x\\sqrt{2}", "5x^2\\sqrt{2}", "10x"] },
+      { problem: "\\sqrt{72x^3}",     correctAnswer: "6x\\sqrt{2x}",      distractors: ["6x\\sqrt{2}", "8x\\sqrt{9x}", "36x\\sqrt{2x}"] },
+      { problem: "\\sqrt{x^5}",       correctAnswer: "x^2\\sqrt{x}",      distractors: ["x\\sqrt{x^3}", "x^3", "x^5"] },
+      { problem: "\\sqrt{18x^4}",     correctAnswer: "3x^2\\sqrt{2}",     distractors: ["9x^2\\sqrt{2}", "3x^2\\sqrt{6}", "6x^2"] },
+      { problem: "\\sqrt{9x^6}",      correctAnswer: "3x^3",              distractors: ["9x^3", "3x^6", "3x\\sqrt{x^6}"] },
+      { problem: "\\sqrt{48x^2}",     correctAnswer: "4x\\sqrt{3}",       distractors: ["16x\\sqrt{3}", "4x^2\\sqrt{3}", "4x\\sqrt{12}"] },
+      { problem: "\\sqrt{98x^5}",     correctAnswer: "7x^2\\sqrt{2x}",    distractors: ["7x^2\\sqrt{2}", "49x^2\\sqrt{2x}", "7x\\sqrt{14x^3}"] },
+    ],
+  },
+
+  // ---------------- NEW: Adding and Subtracting Radicals ----------------
+  "radicals-add-sub": {
+    title: "Add & Subtract Radicals",
+    subtitle: "Combine like radicals",
+    style: "square",
+    problems: [
+      { problem: "3\\sqrt{2} + 5\\sqrt{2}",       correctAnswer: "8\\sqrt{2}",   distractors: ["8\\sqrt{4}", "15\\sqrt{2}", "8\\sqrt{2^2}"] },
+      { problem: "7\\sqrt{5} - 2\\sqrt{5}",       correctAnswer: "5\\sqrt{5}",   distractors: ["5", "9\\sqrt{5}", "5\\sqrt{0}"] },
+      { problem: "\\sqrt{8} + \\sqrt{2}",         correctAnswer: "3\\sqrt{2}",   distractors: ["\\sqrt{10}", "2\\sqrt{2}", "\\sqrt{16}"] },
+      { problem: "\\sqrt{12} + \\sqrt{27}",       correctAnswer: "5\\sqrt{3}",   distractors: ["\\sqrt{39}", "3\\sqrt{3}", "2\\sqrt{6} + 3\\sqrt{3}"] },
+      { problem: "4\\sqrt{3} - \\sqrt{12}",       correctAnswer: "2\\sqrt{3}",   distractors: ["3\\sqrt{3}", "4\\sqrt{3} - 12", "0"] },
+      { problem: "\\sqrt{50} - \\sqrt{18}",       correctAnswer: "2\\sqrt{2}",   distractors: ["\\sqrt{32}", "8\\sqrt{2}", "4\\sqrt{2}"] },
+      { problem: "2\\sqrt{20} + \\sqrt{45}",      correctAnswer: "7\\sqrt{5}",   distractors: ["3\\sqrt{65}", "5\\sqrt{5}", "\\sqrt{65}"] },
+      { problem: "\\sqrt{75} - 2\\sqrt{3}",       correctAnswer: "3\\sqrt{3}",   distractors: ["\\sqrt{3}", "5\\sqrt{3} - 2", "7\\sqrt{3}"] },
+      { problem: "\\sqrt{48} + \\sqrt{75}",       correctAnswer: "9\\sqrt{3}",   distractors: ["\\sqrt{123}", "20\\sqrt{3}", "9\\sqrt{6}"] },
+      { problem: "3\\sqrt{18} - \\sqrt{8}",       correctAnswer: "7\\sqrt{2}",   distractors: ["2\\sqrt{10}", "11\\sqrt{2}", "3\\sqrt{10}"] },
+      { problem: "\\sqrt{32} + 2\\sqrt{2}",       correctAnswer: "6\\sqrt{2}",   distractors: ["3\\sqrt{2}", "\\sqrt{34}", "4\\sqrt{2}"] },
+    ],
+  },
+
+  // ---------------- NEW: Rationalizing the Denominator ----------------
+  rationalize: {
+    title: "Rationalizing the Denominator",
+    subtitle: "Simplify each expression",
+    style: "square",
+    problems: [
+      { problem: "\\frac{1}{\\sqrt{2}}",  correctAnswer: "\\frac{\\sqrt{2}}{2}",   distractors: ["\\sqrt{2}", "\\frac{2}{\\sqrt{2}}", "\\frac{1}{2}"] },
+      { problem: "\\frac{3}{\\sqrt{5}}",  correctAnswer: "\\frac{3\\sqrt{5}}{5}",  distractors: ["\\frac{\\sqrt{5}}{3}", "\\frac{3}{5}", "3\\sqrt{5}"] },
+      { problem: "\\frac{4}{\\sqrt{3}}",  correctAnswer: "\\frac{4\\sqrt{3}}{3}",  distractors: ["\\frac{4\\sqrt{3}}{9}", "\\frac{4}{3}", "\\frac{\\sqrt{3}}{4}"] },
+      { problem: "\\frac{6}{\\sqrt{2}}",  correctAnswer: "3\\sqrt{2}",             distractors: ["\\frac{6\\sqrt{2}}{4}", "\\frac{3}{\\sqrt{2}}", "\\frac{\\sqrt{2}}{3}"] },
+      { problem: "\\frac{2}{\\sqrt{7}}",  correctAnswer: "\\frac{2\\sqrt{7}}{7}",  distractors: ["\\frac{\\sqrt{7}}{2}", "\\frac{2}{7}", "2\\sqrt{7}"] },
+      { problem: "\\frac{5}{\\sqrt{10}}", correctAnswer: "\\frac{\\sqrt{10}}{2}",  distractors: ["\\frac{5\\sqrt{10}}{100}", "\\frac{5}{10}", "\\frac{\\sqrt{10}}{5}"] },
+      { problem: "\\frac{8}{\\sqrt{6}}",  correctAnswer: "\\frac{4\\sqrt{6}}{3}",  distractors: ["\\frac{8\\sqrt{6}}{6}", "\\frac{8}{6}", "\\frac{\\sqrt{6}}{8}"] },
+      { problem: "\\frac{1}{\\sqrt{3}}",  correctAnswer: "\\frac{\\sqrt{3}}{3}",   distractors: ["\\frac{1}{3}", "\\sqrt{3}", "\\frac{\\sqrt{3}}{9}"] },
+      { problem: "\\frac{9}{\\sqrt{6}}",  correctAnswer: "\\frac{3\\sqrt{6}}{2}",  distractors: ["\\frac{9\\sqrt{6}}{6}", "\\frac{9}{6}", "\\frac{\\sqrt{6}}{9}"] },
+      { problem: "\\frac{7}{\\sqrt{14}}", correctAnswer: "\\frac{\\sqrt{14}}{2}",  distractors: ["\\frac{7\\sqrt{14}}{14}", "\\frac{1}{2}", "\\frac{\\sqrt{14}}{7}"] },
+      { problem: "\\frac{10}{\\sqrt{5}}", correctAnswer: "2\\sqrt{5}",             distractors: ["\\frac{10\\sqrt{5}}{25}", "\\frac{10}{5}", "\\frac{\\sqrt{5}}{2}"] },
+    ],
+  },
+
+  // ---------------- NEW: Exponential Function from Table ----------------
+  "exp-from-table": {
+    title: "Exponential Function from a Table",
+    subtitle: "Write y = a \\cdot b^x for the (x, y) pairs",
+    style: "square",
+    problems: [
+      { problem: "(0, 2),\\ (1, 6),\\ (2, 18)",       correctAnswer: "y = 2 \\cdot 3^x",                 distractors: ["y = 3 \\cdot 2^x", "y = 2x + 4", "y = 6^x"] },
+      { problem: "(0, 4),\\ (1, 8),\\ (2, 16)",       correctAnswer: "y = 4 \\cdot 2^x",                 distractors: ["y = 2 \\cdot 4^x", "y = 4x + 4", "y = 8^x"] },
+      { problem: "(0, 1),\\ (1, 5),\\ (2, 25)",       correctAnswer: "y = 5^x",                          distractors: ["y = 5x", "y = x^5", "y = 5 \\cdot x"] },
+      { problem: "(0, 3),\\ (1, 12),\\ (2, 48)",      correctAnswer: "y = 3 \\cdot 4^x",                 distractors: ["y = 4 \\cdot 3^x", "y = 12^x", "y = 3x + 9"] },
+      { problem: "(0, 10),\\ (1, 5),\\ (2, 2.5)",     correctAnswer: "y = 10 \\cdot \\left(\\frac{1}{2}\\right)^x", distractors: ["y = 10 \\cdot 2^x", "y = 10 - 5x", "y = \\frac{10}{x}"] },
+      { problem: "(0, 1),\\ (1, 2),\\ (2, 4)",        correctAnswer: "y = 2^x",                          distractors: ["y = 2x", "y = x^2", "y = 2x + 1"] },
+      { problem: "(0, 8),\\ (1, 4),\\ (2, 2)",        correctAnswer: "y = 8 \\cdot \\left(\\frac{1}{2}\\right)^x", distractors: ["y = 8 \\cdot 2^x", "y = 8 - 4x", "y = -4x + 8"] },
+      { problem: "(0, 5),\\ (1, 15),\\ (2, 45)",      correctAnswer: "y = 5 \\cdot 3^x",                 distractors: ["y = 3 \\cdot 5^x", "y = 15^x", "y = 10x + 5"] },
+      { problem: "(0, 1),\\ (1, 4),\\ (2, 16)",       correctAnswer: "y = 4^x",                          distractors: ["y = 4x", "y = x^4", "y = 4x + 1"] },
+      { problem: "(0, 100),\\ (1, 50),\\ (2, 25)",    correctAnswer: "y = 100 \\cdot \\left(\\frac{1}{2}\\right)^x", distractors: ["y = 100 \\cdot 2^x", "y = 100 - 50x", "y = -50x + 100"] },
+      { problem: "(0, 2),\\ (1, 8),\\ (2, 32)",       correctAnswer: "y = 2 \\cdot 4^x",                 distractors: ["y = 4 \\cdot 2^x", "y = 8^x", "y = 6x + 2"] },
+    ],
+  },
+
+  // ---------------- NEW: Exponential Growth / Decay Word Problems ----------------
+  "exp-decay-words": {
+    title: "Exponential Growth & Decay",
+    subtitle: "Word problems",
+    style: "square",
+    problems: [
+      { problem: "\\text{\\$500 grows 6\\%/yr. After 1 yr?}",            correctAnswer: "\\$530",                       distractors: ["\\$506", "\\$5300", "\\$3000"] },
+      { problem: "\\text{Pop } 1000,\\ +10\\%/\\text{yr. After 2 yr?}",  correctAnswer: "1210",                         distractors: ["1200", "1100", "2100"] },
+      { problem: "\\text{Car \\$20{,}000 loses 15\\%/yr. After 1 yr?}",  correctAnswer: "\\$17{,}000",                  distractors: ["\\$3{,}000", "\\$23{,}000", "\\$15{,}000"] },
+      { problem: "\\text{Bacteria double/hr, start } 50.\\ \\text{After 3 hr?}", correctAnswer: "400",                  distractors: ["300", "150", "800"] },
+      { problem: "\\text{\\$2000 at 5\\%/yr. Model } P(t)?",             correctAnswer: "P(t) = 2000(1.05)^t",          distractors: ["P(t) = 2000(0.95)^t", "P(t) = 2000 + 5t", "P(t) = 2000(1.5)^t"] },
+      { problem: "\\text{Halves yearly, start } 800.\\ \\text{After 2 yr?}",    correctAnswer: "200",                    distractors: ["400", "100", "600"] },
+      { problem: "\\text{Pop } 250,\\ +20\\%/\\text{yr. After 1 yr?}",   correctAnswer: "300",                          distractors: ["270", "250.2", "320"] },
+      { problem: "\\text{Car \\$25{,}000,\\ -10\\%/yr. After 2 yr?}",    correctAnswer: "\\$20{,}250",                  distractors: ["\\$20{,}000", "\\$22{,}500", "\\$15{,}000"] },
+      { problem: "\\text{Triples/hr, start } 4.\\ \\text{After 2 hr?}",  correctAnswer: "36",                           distractors: ["24", "12", "108"] },
+      { problem: "\\text{Pop } 800,\\ -25\\%/\\text{yr. Model?}",        correctAnswer: "P(t) = 800(0.75)^t",           distractors: ["P(t) = 800(1.25)^t", "P(t) = 800 - 25t", "P(t) = 800(0.25)^t"] },
+      { problem: "\\text{Invest \\$1000, +8\\%/yr. After 1 yr?}",        correctAnswer: "\\$1080",                      distractors: ["\\$1008", "\\$10{,}800", "\\$1800"] },
+    ],
+  },
+};
+
+/* =========================================================================
+   UTIL
+   ========================================================================= */
+function uid() { return 'p' + Math.random().toString(36).slice(2, 9); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Render LaTeX to HTML using KaTeX. Falls back to plain text if KaTeX isn't loaded.
+  function renderLatex(latex, opts = {}) {
+  if (!latex) return "";
+  if (typeof katex === 'undefined') return escapeHtml(latex);
+  try {
+    return katex.renderToString(String(latex), {
+      throwOnError: false,
+      displayMode: !!opts.displayMode,
+      output: 'html',
+      strict: false,
+      trust: false,
+    });
+  } catch (e) {
+    return escapeHtml(latex);
+  }
+
+  function emptyStateMarkup() {
+    return `
+      <div class="empty-state" id="empty-state">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <polygon points="32,8 56,22 56,42 32,56 8,42 8,22" stroke="#cbd5e1" stroke-width="2.5" fill="#f8fafc"/>
+          <text x="32" y="36" text-anchor="middle" font-size="18" font-weight="700" fill="#94a3b8">?</text>
+        </svg>
+        <h3>Add some problems to build your maze</h3>
+        <p style="font-size:13px;margin:0 0 12px;">You'll need at least 3 problems. Try a sample set to see how it works.</p>
+        <button id="btn-load-sample-empty" class="primary">Load a Sample</button>
+      </div>
+    `;
+  }
+}
+
+/* =========================================================================
+   AUTO-DISTRACTOR GENERATION
+   Works on LaTeX strings. Detects common patterns across topics.
+   ========================================================================= */
+function generateDistractors(correct) {
+  if (!correct) return ["", "", ""];
+  const out = new Set();
+  const c = correct.trim();
+
+  // Pattern: (x+a)(x+b) factor pairs — supports any letter, any signs
+  const factorRegex = /\(([a-zA-Z])\s*([+\-])\s*(\d+)\)\s*\(([a-zA-Z])\s*([+\-])\s*(\d+)\)/;
+  const fm = c.match(factorRegex);
+  if (fm) {
+    const [, v1, s1, n1, v2, s2, n2] = fm;
+    const flip = s => s === '+' ? '-' : '+';
+    out.add(`(${v1}${flip(s1)}${n1})(${v2}${flip(s2)}${n2})`);
+    out.add(`(${v1}${flip(s1)}${n1})(${v2}${s2}${n2})`);
+    out.add(`(${v1}${s1}${n1})(${v2}${flip(s2)}${n2})`);
+  }
+
+  // Pattern: x = N or x = \frac{a}{b}
+  const eqM = c.match(/^\s*([a-zA-Z])\s*=\s*(.+?)\s*$/);
+  if (eqM) {
+    const [, v, rhs] = eqM;
+    // Numeric RHS
+    const numM = rhs.match(/^-?\d+(\.\d+)?$/);
+    if (numM) {
+      const n = parseFloat(rhs);
+      out.add(`${v} = ${n + 1}`);
+      out.add(`${v} = ${n - 1}`);
+      out.add(`${v} = ${-n}`);
+      out.add(`${v} = ${n * 2}`);
+    }
+    // Fraction RHS
+    const fracM = rhs.match(/^\\frac\{(-?\d+)\}\{(-?\d+)\}$/);
+    if (fracM) {
+      const [, top, bot] = fracM;
+      out.add(`${v} = \\frac{${bot}}{${top}}`);            // flipped
+      out.add(`${v} = -\\frac{${top}}{${bot}}`);           // sign change
+      out.add(`${v} = \\frac{${parseInt(top)+1}}{${bot}}`); // off by one
+    }
+  }
+
+  // Pattern: pure number
+  if (/^-?\d+(\.\d+)?$/.test(c)) {
+    const n = parseFloat(c);
+    out.add(String(n + 1));
+    out.add(String(n - 1));
+    out.add(String(-n));
+    out.add(String(n + 2));
+  }
+
+  // Pattern: x^N exponent
+  const expM = c.match(/^([a-zA-Z])\^\{?(-?\d+)\}?$/);
+  if (expM) {
+    const [, v, n] = expM;
+    const N = parseInt(n);
+    out.add(`${v}^{${N+1}}`);
+    out.add(`${v}^{${N-1}}`);
+    out.add(`${v}^{${-N}}`);
+  }
+
+  // Pattern: simple coefficient + variable + power, e.g., 4x^6, 27x^6y^3
+  const coefM = c.match(/^(\d+)([a-zA-Z](\^[\d\{\}-]+)?)/);
+  if (coefM) {
+    const [, coef, rest] = coefM;
+    const C = parseInt(coef);
+    if (C > 0) {
+      out.add((C + 1) + rest + c.slice(coefM[0].length));
+      if (C > 1) out.add((C - 1) + rest + c.slice(coefM[0].length));
+      out.add((C * 2) + rest + c.slice(coefM[0].length));
+    }
+  }
+
+  // Pattern: \frac{a}{b}
+  const fracM = c.match(/^\\frac\{(-?\d+)\}\{(-?\d+)\}$/);
+  if (fracM) {
+    const [, top, bot] = fracM;
+    out.add(`\\frac{${bot}}{${top}}`);          // reciprocal
+    out.add(`-\\frac{${top}}{${bot}}`);         // sign flip
+    out.add(`\\frac{${parseInt(top)+1}}{${bot}}`);
+    out.add(`\\frac{${top}}{${parseInt(bot)+1}}`);
+  }
+
+  // Pattern: simple binomial like x+5 or 3x-7 (no parens)
+  const binomM = c.match(/^\s*(\d*[a-zA-Z])\s*([+\-])\s*(\d+)\s*$/);
+  if (binomM) {
+    const [, term, s, n] = binomM;
+    const flip = s === '+' ? '-' : '+';
+    out.add(`${term}${flip}${n}`);
+    out.add(`${term}${s}${parseInt(n)+1}`);
+    out.add(`${term}${s}${parseInt(n)-1 || 1}`);
+  }
+
+  // Generic fallback if nothing else matched
+  if (out.size === 0) {
+    out.add(c + "+1");
+    out.add(c + "-1");
+    out.add("-" + c);
+  }
+
+  // Remove the correct answer from distractors
+  out.delete(c);
+  out.delete(correct);
+
+  // Take first 3 distinct, padding with empty strings
+  return Array.from(out).slice(0, 3).concat(["", "", ""]).slice(0, 3);
+}
+
+/* =========================================================================
+   RENDER: Sidebar Problem List
+   ========================================================================= */
+function renderProblemList() {
+  const list = document.getElementById('problem-list');
+  document.getElementById('problem-count').textContent = state.problems.length;
+
+  if (state.problems.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:13px;font-style:italic;padding:12px 0;">No problems yet. Click "Add Problem" or "Load Sample".</div>';
+    return;
+  }
+
+  list.innerHTML = state.problems.map((p, i) => `
+    <div class="problem-card" data-id="${p.id}">
+      <div class="pc-head">
+        <span class="pc-num">${i + 1}</span>
+        <div class="pc-text">${renderLatex(p.problem)}</div>
+        <div class="pc-actions">
+          <button class="small ghost" data-action="up" data-id="${p.id}" ${i === 0 ? 'disabled' : ''} title="Move up">↑</button>
+          <button class="small ghost" data-action="down" data-id="${p.id}" ${i === state.problems.length - 1 ? 'disabled' : ''} title="Move down">↓</button>
+          <button class="small ghost" data-action="duplicate" data-id="${p.id}" title="Duplicate">⎘</button>
+          <button class="small ghost" data-action="edit" data-id="${p.id}">Edit</button>
+          <button class="small ghost danger" data-action="delete" data-id="${p.id}" title="Delete">×</button>
+        </div>
+      </div>
+      <div class="pc-correct">✓ ${renderLatex(p.correctAnswer)}</div>
+      <div class="pc-distractors">${
+        p.distractors.filter(Boolean).length
+          ? p.distractors.filter(Boolean).map(d => `<span>${renderLatex(d)}</span>`).join(' • ')
+          : '<em>no distractors</em>'
+      }</div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('button[data-action]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (action === 'edit') openEditor(id);
+      else if (action === 'delete') deleteProblem(id);
+      else if (action === 'up') moveProblem(id, -1);
+      else if (action === 'down') moveProblem(id, 1);
+      else if (action === 'duplicate') duplicateProblem(id);
+    });
+  });
+}
+
+/* =========================================================================
+   PROBLEM CRUD
+   ========================================================================= */
+function openEditor(id) {
+  state.editingProblemId = id;
+  const p = id ? state.problems.find(x => x.id === id) : null;
+  document.getElementById('modal-title').textContent = p ? 'Edit Problem' : 'Add Problem';
+  // Set values on math-fields (web components expose .value)
+  document.getElementById('m-problem').value = p ? p.problem : '';
+  document.getElementById('m-correct').value = p ? p.correctAnswer : '';
+  renderDistractorRows(p ? p.distractors : ['', '', '']);
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('m-problem').focus(), 50);
+  // Add/Save button only relevant when adding new
+  document.getElementById('btn-modal-save-add').style.display = id ? 'none' : 'inline-block';
+}
+
+function renderDistractorRows(distractors) {
+  const wrap = document.getElementById('distractor-rows');
+  const arr = (distractors || []).concat(['', '', '']).slice(0, 3);
+  wrap.innerHTML = arr.map((d, i) => `
+    <div class="distractor-row">
+      <span class="marker">✗</span>
+      <math-field data-distractor-i="${i}"></math-field>
+    </div>
+  `).join('');
+  // Set values after the elements are in the DOM
+  arr.forEach((d, i) => {
+    const el = wrap.querySelector(`[data-distractor-i="${i}"]`);
+    if (el) el.value = d || '';
+  });
+}
+
+function closeEditor() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  state.editingProblemId = null;
+}
+
+function readEditorValues() {
+  const problem = (document.getElementById('m-problem').value || '').trim();
+  const correctAnswer = (document.getElementById('m-correct').value || '').trim();
+  const distractors = Array.from(document.querySelectorAll('[data-distractor-i]'))
+    .map(el => (el.value || '').trim());
+  return { problem, correctAnswer, distractors };
+}
+
+function saveProblemFromEditor(action = 'close') {
+  // action: 'close' | 'add-another' | 'duplicate'
+  const { problem, correctAnswer, distractors } = readEditorValues();
+  if (!problem) return showToast('Please enter the problem.');
+  if (!correctAnswer) return showToast('Please enter the correct answer.');
+
+  let savedIndex;
+  if (state.editingProblemId) {
+    const p = state.problems.find(x => x.id === state.editingProblemId);
+    p.problem = problem;
+    p.correctAnswer = correctAnswer;
+    p.distractors = distractors;
+    savedIndex = state.problems.findIndex(x => x.id === state.editingProblemId);
+  } else {
+    state.problems.push({ id: uid(), problem, correctAnswer, distractors });
+    savedIndex = state.problems.length - 1;
+  }
+  resetInteractiveProgress();
+
+  if (action === 'add-another') {
+    // Clear fields, keep modal open in "add new" mode
+    state.editingProblemId = null;
+    document.getElementById('modal-title').textContent = 'Add Problem';
+    document.getElementById('m-problem').value = '';
+    document.getElementById('m-correct').value = '';
+    renderDistractorRows(['', '', '']);
+    document.getElementById('btn-modal-save-add').style.display = 'inline-block';
+    setTimeout(() => document.getElementById('m-problem').focus(), 50);
+    renderAll();
+    showToast(`Added — ${state.problems.length} problem${state.problems.length > 1 ? 's' : ''} so far`);
+  } else if (action === 'duplicate') {
+    // Save the current problem, then create a copy right after it and switch the modal
+    // into editing the copy. Form values stay populated so the teacher can tweak.
+    const copy = {
+      id: uid(),
+      problem,
+      correctAnswer,
+      distractors: distractors.slice(),
+    };
+    state.problems.splice(savedIndex + 1, 0, copy);
+    state.editingProblemId = copy.id;
+    document.getElementById('modal-title').textContent = 'Edit Duplicate';
+    document.getElementById('btn-modal-save-add').style.display = 'none';
+    // Form values are already populated — focus the problem field for quick editing
+    setTimeout(() => {
+      const pf = document.getElementById('m-problem');
+      pf.focus();
+      // Try to position caret at end
+      try { pf.executeCommand && pf.executeCommand('moveToMathfieldEnd'); } catch(e) {}
+    }, 50);
+    renderAll();
+    showToast(`Duplicated — edit and save (${state.problems.length} total)`);
+  } else {
+    closeEditor();
+    renderAll();
+  }
+}
+
+function duplicateProblem(id) {
+  const i = state.problems.findIndex(p => p.id === id);
+  if (i < 0) return;
+  const original = state.problems[i];
+  const copy = {
+    id: uid(),
+    problem: original.problem,
+    correctAnswer: original.correctAnswer,
+    distractors: (original.distractors || []).slice(),
+  };
+  state.problems.splice(i + 1, 0, copy);
+  resetInteractiveProgress();
+  renderAll();
+  // Open the editor on the new copy so the teacher can immediately make tweaks
+  openEditor(copy.id);
+  document.getElementById('modal-title').textContent = 'Edit Duplicate';
+  showToast('Duplicated — make any edits and save');
+}
+
+function deleteProblem(id) {
+  if (!confirm('Delete this problem?')) return;
+  state.problems = state.problems.filter(p => p.id !== id);
+  resetInteractiveProgress();
+  renderAll();
+}
+
+function moveProblem(id, delta) {
+  const i = state.problems.findIndex(p => p.id === id);
+  const j = i + delta;
+  if (j < 0 || j >= state.problems.length) return;
+  [state.problems[i], state.problems[j]] = [state.problems[j], state.problems[i]];
+  resetInteractiveProgress();
+  renderAll();
+}
+
+function clearAllProblems() {
+  if (!confirm('Remove all problems?')) return;
+  state.problems = [];
+  resetInteractiveProgress();
+  renderAll();
+}
+
+/* =========================================================================
+   IMPORT / EXPORT / SAMPLE
+   ========================================================================= */
+function loadSample(key) {
+  if (key === 'blank') {
+    state.title = 'My Math Maze';
+    state.subtitle = '';
+    state.problems = [];
+    document.getElementById('maze-title').value = state.title;
+    document.getElementById('maze-subtitle').value = state.subtitle;
+    resetInteractiveProgress();
+    renderAll();
+    showToast('Cleared — start adding problems');
+    return;
+  }
+  const sample = SAMPLES[key];
+  if (!sample) return;
+  state.title = sample.title;
+  state.subtitle = sample.subtitle;
+  state.style = sample.style;
+  state.problems = sample.problems.map(p => ({ id: uid(), ...p }));
+  state.circularPathSeed = Math.random();  // pick a fresh circular path pattern
+  document.getElementById('maze-title').value = state.title;
+  document.getElementById('maze-subtitle').value = state.subtitle;
+  setActiveStyle(state.style);
+  resetInteractiveProgress();
+  renderAll();
+  showToast(`Loaded sample: ${sample.title}`);
+}
+
+function exportJSON() {
+  if (state.problems.length === 0) return showToast('Nothing to export yet');
+  const data = {
+    title: state.title,
+    subtitle: state.subtitle,
+    style: state.style,
+    problems: state.problems.map(({ id, ...rest }) => rest),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (state.title || 'math-maze').replace(/[^a-z0-9]+/gi, '-').toLowerCase() + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Exported');
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data.problems)) throw new Error('Invalid file');
+      state.title = data.title || 'My Math Maze';
+      state.subtitle = data.subtitle || '';
+      state.style = ['hexagonal', 'square', 'linear', 'circular'].includes(data.style) ? data.style : 'square';
+      state.problems = data.problems.map(p => ({
+        id: uid(),
+        problem: p.problem || '',
+        correctAnswer: p.correctAnswer || '',
+        distractors: Array.isArray(p.distractors) ? p.distractors : ['', '', ''],
+      }));
+      document.getElementById('maze-title').value = state.title;
+      document.getElementById('maze-subtitle').value = state.subtitle;
+      setActiveStyle(state.style);
+      resetInteractiveProgress();
+      renderAll();
+      showToast(`Imported ${state.problems.length} problems`);
+    } catch (err) {
+      showToast("Couldn't read that file");
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* =========================================================================
+   STYLE / MODE
+   ========================================================================= */
+function setActiveStyle(style) {
+  state.style = style;
+  document.querySelectorAll('.style-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.style === style);
+  });
+  resetInteractiveProgress();
+  renderMaze();
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  document.querySelectorAll('#mode-toggle button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  renderMaze();
+}
+
+function resetInteractiveProgress() {
+  state.pathIndex = 0;
+  state.selectedAnswers = {};
+  state.showingSolution = false;
+}
+
+/* =========================================================================
+   HELPER: deterministic shuffle so answer order is stable across renders
+   ========================================================================= */
+function getAnswerChoices(problem) {
+  const correct = problem.correctAnswer;
+  const distractors = (problem.distractors || []).filter(d => d && d !== correct);
+  const all = [correct, ...distractors];
+  return shuffleDeterministic(all, problem.id + state.shuffleSalt);
+}
+
+function shuffleDeterministic(arr, seedStr) {
+  let h = 0;
+  for (const c of seedStr) h = ((h << 5) - h + c.charCodeAt(0)) | 0;
+  // Ensure positive — JS's modulo preserves sign, so a negative h would make rng() negative,
+  // producing a negative array index and putting `undefined` into the swap.
+  const rng = () => {
+    h = (h * 9301 + 49297) % 233280;
+    if (h < 0) h += 233280;
+    return h / 233280;
+  };
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* =========================================================================
+   RENDER MAZE
+   ========================================================================= */
+function renderMaze() {
+  const area = document.getElementById('maze-render-area');
+
+  document.getElementById('display-title').textContent = state.title || 'Math Maze';
+  const subEl = document.getElementById('display-subtitle');
+  subEl.innerHTML = renderLatex(state.subtitle || '');
+  subEl.style.display = state.subtitle ? 'block' : 'none';
+
+  if (state.problems.length < 3) {
+    area.innerHTML = emptyStateMarkup();
+    const sampleButton = document.getElementById('btn-load-sample-empty');
+    if (sampleButton) sampleButton.addEventListener('click', () => loadSample('factoring'));
+    document.getElementById('maze-controls').style.display = state.problems.length === 0 ? 'none' : 'flex';
+    document.getElementById('status-banner').style.display = 'none';
+    document.getElementById('path-progress').textContent = '';
+    return;
+  }
+
+  document.getElementById('maze-controls').style.display = 'flex';
+  let svg;
+  switch (state.style) {
+    case 'hexagonal': svg = renderHexagonalMaze(); break;
+    case 'square':    svg = renderSquareMaze(); break;
+    case 'linear':    svg = renderLinearMaze(); break;
+    case 'circular':  svg = renderCircularMaze(); break;
+  }
+  area.innerHTML = svg;
+  attachInteractiveHandlers();
+  updateInteractiveStatus();
+}
+
+function updateInteractiveStatus() {
+  const banner = document.getElementById('status-banner');
+  const progress = document.getElementById('path-progress');
+  if (state.mode !== 'interactive') {
+    banner.style.display = 'none';
+    progress.textContent = '';
+    return;
+  }
+  const total = state.problems.length;
+  progress.textContent = `Progress: ${state.pathIndex} / ${total}`;
+  if (state.pathIndex >= total) {
+    banner.className = 'status-banner success';
+    banner.style.display = 'flex';
+    banner.innerHTML = '🎉 Solved! You found the path from START to END.';
+  } else {
+    banner.className = 'status-banner';
+    banner.style.display = 'flex';
+    banner.innerHTML = `📐 Solve problem ${state.pathIndex + 1} — click the correct answer arrow to advance.`;
+  }
+}
+
+/* =========================================================================
+   FOREIGNOBJECT MATH RENDERING
+   Renders LaTeX inside an SVG <foreignObject> using KaTeX.
+   ========================================================================= */
+function mathFO(latex, x, y, w, h, fontPx = 16) {
+  const html = renderLatex(latex);
+  return `<foreignObject x="${(x - w/2).toFixed(1)}" y="${(y - h/2).toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="math-fo" style="font-size:${fontPx}px;">${html}</div>
+  </foreignObject>`;
+}
+
+/* =========================================================================
+   STYLE 1 : HEXAGONAL — same clean snake-grid + connector logic as Grid,
+   but cells are drawn as flat-top hexagons.
+   ========================================================================= */
+function renderHexagonalMaze() {
+  return renderSnakeGridMaze({
+    cellW: 200, cellH: 100,
+    hGap: 90, vGap: 60,
+    fontSize: 17,
+    startLabelOffset: 18,
+    drawCell: (x, y, w, h, klass) => hexagonShape(x, y, w, h, klass),
+  });
+}
+
+/* =========================================================================
+   SHARED helper used by Grid, Hexagonal, and Snaking Path renderers
+   ========================================================================= */
+function renderSnakeGridMaze(opts) {
+  const N = state.problems.length;
+  if (N === 0) return '';
+
+  const totalCells = N + 1;
+  const grid = bestGridFor(totalCells);
+  const colsActual = grid.cols;
+  const rowsActual = grid.rows;
+
+  const { cellW, cellH, hGap, vGap, fontSize, startLabelOffset, drawCell } = opts;
+  const padding = 30;
+  const cellSpacingX = cellW + hGap;
+  const cellSpacingY = cellH + vGap;
+
+  const totalW = padding * 2 + colsActual * cellW + (colsActual - 1) * hGap;
+  const totalH = padding * 2 + rowsActual * cellH + (rowsActual - 1) * vGap;
+
+  // Build a seeded random path so the correct connector can go in any
+  // orthogonal direction — not always along a predictable snake.
+  const positions = [];
+  const pathOrder = randomMazePath(rowsActual, colsActual, totalCells, state.shuffleSalt);
+  for (let i = 0; i < totalCells; i++) {
+    const { col, row } = pathOrder[i];
+    positions.push({
+      x: padding + cellW / 2 + col * cellSpacingX,
+      y: padding + cellH / 2 + row * cellSpacingY,
+      col, row, idx: i,
+    });
+  }
+
+  const cellAt = {};
+  positions.forEach(p => { cellAt[`${p.col},${p.row}`] = p.idx; });
+
+  let svg = `<svg class="maze-svg" viewBox="0 0 ${totalW.toFixed(0)} ${totalH.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Tracks which corner-gaps already have a diagonal connector running
+  // through them.  A "gap" is identified by its top-left grid coordinate
+  // (the corner shared by four cells).  Two diagonals that share the
+  // same gap key would render as a crossing "X" pattern, so we only
+  // allow one diagonal per gap across all cells.
+  const usedDiagonalGaps = new Set();
+
+  // Pre-reserve any corner-gaps used by the correct (solution) path's
+  // diagonal steps.  This ensures no distractor diagonal is ever drawn
+  // crossing the solution path — even one drawn by a cell processed
+  // before the diagonal step in PASS 1.
+  for (let i = 0; i < N; i++) {
+    const a = positions[i], b = positions[i + 1];
+    if (a.col !== b.col && a.row !== b.row) {
+      usedDiagonalGaps.add(`${Math.min(a.col, b.col)},${Math.min(a.row, b.row)}`);
+    }
+  }
+
+  // ---------- PASS 1: Connectors (cells overlay) ----------
+  for (let i = 0; i < N; i++) {
+    const fromPos = positions[i];
+    const problem = state.problems[i];
+
+    // Correct direction: always toward the next cell in the random path
+    const nextPos = positions[i + 1];
+    const correctDx = nextPos.col - fromPos.col;
+    const correctDy = nextPos.row - fromPos.row;
+    const correctDir = { dx: correctDx, dy: correctDy };
+
+    // Distractor directions: orthogonally-adjacent cells that are neither the correct
+    // next cell nor the previous cell in the path.
+    // We MUST skip the previous cell: its connector (correct) was already drawn
+    // in the prior iteration, and drawing over it would overwrite the green highlight.
+    const prevPos = i > 0 ? positions[i - 1] : null;
+    const distractorDirs = [];
+    for (const [ddx, ddy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      if (ddx === correctDx && ddy === correctDy) continue; // skip correct dir
+      const nc = fromPos.col + ddx, nr = fromPos.row + ddy;
+      if (!(`${nc},${nr}` in cellAt)) continue;            // skip off-grid
+      if (prevPos && nc === prevPos.col && nr === prevPos.row) continue; // skip prev cell
+      distractorDirs.push({ dx: ddx, dy: ddy });
+    }
+
+    // Diagonal supplement: corner and edge cells often have only 0–1 orthogonal
+    // distractors, leaving the correct answer obvious.  Add at most ONE diagonal
+    // per cell (prevents crossing "X" patterns), and reserve the corner-gap
+    // globally so a neighboring cell can't draw a second diagonal that would
+    // cross this one in the same gap.
+    for (const [ddx, ddy] of [[1,1],[-1,1],[1,-1],[-1,-1]]) {
+      if (distractorDirs.length >= 2) break;
+      if (ddx === correctDx && ddy === correctDy) continue; // skip correct dir (when path goes diagonal)
+      const nc = fromPos.col + ddx, nr = fromPos.row + ddy;
+      if (!(`${nc},${nr}` in cellAt)) continue;
+      if (prevPos && nc === prevPos.col && nr === prevPos.row) continue; // skip prev cell (when prev is diagonal)
+      // Identify the corner-gap by its top-left grid coordinate.  Any two
+      // diagonals sharing this key would visually cross each other.
+      const gapKey = `${Math.min(fromPos.col, nc)},${Math.min(fromPos.row, nr)}`;
+      if (usedDiagonalGaps.has(gapKey)) continue; // would cross an existing diagonal or the solution path
+      usedDiagonalGaps.add(gapKey);
+      distractorDirs.push({ dx: ddx, dy: ddy });
+      break; // one diagonal per cell maximum
+    }
+
+    const distractors = (problem.distractors || []).filter(d => d && d !== problem.correctAnswer);
+    // Only render as many distractor connectors as we have real answers for —
+    // never pad with "?" or leave a connector blank.
+    const activeDistractorDirs = distractorDirs.slice(0, distractors.length);
+    const shuffledDist = shuffleDeterministic(distractors, problem.id + 'd' + state.shuffleSalt);
+
+    svg += renderRectConnector(fromPos, correctDir.dx, correctDir.dy, problem.correctAnswer, true, problem.id, i, cellW, cellH, hGap, vGap);
+    activeDistractorDirs.forEach((dir, idx) => {
+      svg += renderRectConnector(fromPos, dir.dx, dir.dy, shuffledDist[idx], false, problem.id, i, cellW, cellH, hGap, vGap);
+    });
+  }
+
+  // ---------- PASS 2: Cell shapes ----------
+  for (let i = 0; i < N; i++) {
+    const pos = positions[i];
+    svg += drawCell(pos.x, pos.y, cellW, cellH, getCellClass(i));
+  }
+  const endPos = positions[N];
+  svg += drawCell(endPos.x, endPos.y, cellW, cellH, 'cell-shape end');
+
+  // ---------- PASS 3: Labels and math text ----------
+  for (let i = 0; i < N; i++) {
+    const pos = positions[i];
+    if (i === 0) {
+      svg += `<text class="cell-label" x="${pos.x}" y="${(pos.y - cellH/2 + (startLabelOffset || 13)).toFixed(1)}" font-size="11">START</text>`;
+    }
+    const textY = pos.y + (i === 0 ? 8 : 0);
+    svg += mathFO(state.problems[i].problem, pos.x, textY, cellW * 0.85, cellH * 0.62, fontSize);
+  }
+  svg += `<text class="cell-label" x="${endPos.x}" y="${endPos.y}" font-size="22">END!!!</text>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function hexagonShape(cx, cy, w, h, klass) {
+  const dx = w / 2, dy = h / 2;
+  const points = [
+    [cx - dx * 0.6, cy - dy],
+    [cx + dx * 0.6, cy - dy],
+    [cx + dx,       cy],
+    [cx + dx * 0.6, cy + dy],
+    [cx - dx * 0.6, cy + dy],
+    [cx - dx,       cy],
+  ];
+  return `<polygon class="${klass}" points="${points.map(p => p.join(',')).join(' ')}"/>`;
+}
+
+function getCellClass(i) {
+  let klass = 'cell-shape';
+  if (i === 0) klass += ' start';
+  if (state.mode === 'interactive') {
+    if (i < state.pathIndex) klass += ' visited';
+    else if (i === state.pathIndex) klass += ' current';
+  }
+  return klass;
+}
+
+// Compute arrow direction info: an array of objects with from-point, to-point, angle
+function computeArrowDirections(from, to, count, cellHalf, arrowLen) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const dirAngle = Math.atan2(dy, dx);
+
+  // Spread `count` arrows around the cell, primary toward `to`
+  const dirs = [];
+  const baseAngles = count === 3
+    ? [dirAngle, dirAngle + 2 * Math.PI / 3, dirAngle - 2 * Math.PI / 3]
+    : count === 4
+      ? [dirAngle, dirAngle + Math.PI / 2, dirAngle - Math.PI / 2, dirAngle + Math.PI]
+      : Array.from({ length: count }, (_, i) => dirAngle + i * (2 * Math.PI / Math.max(count, 1)));
+
+  for (let i = 0; i < count; i++) {
+    const angle = baseAngles[i];
+    const fx = from.x + Math.cos(angle) * cellHalf;
+    const fy = from.y + Math.sin(angle) * cellHalf;
+    const tx = from.x + Math.cos(angle) * (cellHalf + arrowLen);
+    const ty = from.y + Math.sin(angle) * (cellHalf + arrowLen);
+    dirs.push({ angle, fromX: fx, fromY: fy, toX: tx, toY: ty });
+  }
+  return dirs;
+}
+
+// Render a bidirectional arrow shape with answer text inside
+function renderArrow(problemId, answer, isCorrect, dir, problemIdx) {
+  const ax = (dir.fromX + dir.toX) / 2;
+  const ay = (dir.fromY + dir.toY) / 2;
+  const len = Math.hypot(dir.toX - dir.fromX, dir.toY - dir.fromY);
+  const angle = dir.angle;
+
+  const arrowW = Math.min(120, len * 0.95);
+  const arrowH = 42;
+  const headDepth = 14;
+  const half = arrowW / 2;
+  const innerH = arrowH / 2;
+  const points = [
+    [-half, 0],
+    [-half + headDepth, -innerH],
+    [-half + headDepth, -innerH * 0.55],
+    [ half - headDepth, -innerH * 0.55],
+    [ half - headDepth, -innerH],
+    [ half, 0],
+    [ half - headDepth,  innerH],
+    [ half - headDepth,  innerH * 0.55],
+    [-half + headDepth,  innerH * 0.55],
+    [-half + headDepth,  innerH],
+  ];
+  const cos = Math.cos(angle), sin = Math.sin(angle);
+  const transformed = points.map(([x, y]) => {
+    const rx = x * cos - y * sin + ax;
+    const ry = x * sin + y * cos + ay;
+    return [rx, ry];
+  });
+
+  let klass = 'arrow-shape';
+  const selected = state.selectedAnswers[problemId];
+  if (state.mode === 'interactive') {
+    klass += ' clickable';
+    if (problemIdx !== state.pathIndex) klass += ' locked';
+    if (state.showingSolution) {
+      if (isCorrect) klass += ' correct-revealed';
+    } else if (selected !== undefined) {
+      if (selected === answer) {
+        klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+      }
+    }
+  }
+
+  // Keep math text upright even when arrow is rotated past 90°
+  const textAngleDeg = angle * 180 / Math.PI;
+  const adjustedDeg = (textAngleDeg > 90 || textAngleDeg < -90) ? textAngleDeg + 180 : textAngleDeg;
+  // Inner area for math text
+  const textW = arrowW - headDepth * 2 - 4;
+  const textH = arrowH - 6;
+
+  // Math-FO center is (ax, ay); we wrap it in a <g> with rotation around (ax, ay)
+  const dataAttrs = `data-problem-id="${problemId}" data-answer="${escapeHtml(answer)}" data-correct="${isCorrect}" data-problem-idx="${problemIdx}"`;
+
+  return `
+    <g transform="rotate(${adjustedDeg.toFixed(2)} ${ax.toFixed(1)} ${ay.toFixed(1)})">
+      <g transform="rotate(${(-adjustedDeg).toFixed(2)} ${ax.toFixed(1)} ${ay.toFixed(1)})">
+        <polygon class="${klass}" ${dataAttrs} points="${transformed.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')}"/>
+      </g>
+      ${mathFO(answer, ax, ay, textW, textH, 13)}
+    </g>
+  `;
+}
+
+/* =========================================================================
+   STYLE 2 : SQUARE GRID — clean rectangular layout matching the
+   "inequalities maze" reference: cells in a snake grid, simple rectangle
+   connector strips with answer text inside (horizontal, vertical, and
+   forward-direction diagonal), each cell connecting only to forward
+   neighbors so connectors never overlap. Diagonals only point in the snake
+   "forward" direction, eliminating X-crossings between same-row pairs.
+   Grid dimensions chosen to minimize empty cells (e.g. 5×2 for 10 cells).
+   ========================================================================= */
+function bestGridFor(totalCells) {
+  // Use 4 columns for typical mazes; 2 columns for very small ones.
+  // 4-column grids match the "Solving Inequalities Maze" reference layout.
+  if (totalCells <= 4) return { cols: 2, rows: 2 };
+  return { cols: 4, rows: Math.ceil(totalCells / 4) };
+}
+
+/* =========================================================================
+   RANDOM MAZE PATH
+   Generates a seeded, random self-avoiding walk of exactly `length` steps
+   through a rows×cols grid, always starting at (0,0).  The path can go
+   right, left, up, or down — so the correct answer connector is genuinely
+   unpredictable and may point in any orthogonal direction.  Re-seeding
+   (via state.shuffleSalt) produces a completely different layout.
+   ========================================================================= */
+function randomMazePath(rows, cols, length, salt) {
+  // Seeded LCG PRNG
+  let s = 0;
+  for (const c of String(salt)) s = ((s << 5) - s + c.charCodeAt(0)) | 0;
+  function rng() {
+    s = (Math.imul(s, 1664525) + 1013904223) | 0;
+    return (s >>> 0) / 0x100000000;
+  }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  const visited = new Set();
+  // Tracks corner-gaps consumed by prior diagonal steps in the in-progress
+  // path.  Two diagonals that share the same gap key cross each other (an
+  // "X"), so we forbid the path from making a second diagonal step through
+  // a gap it already used.  Properly backtracked so we don't permanently
+  // poison gaps on a failed branch.
+  const pathDiagonalGaps = new Set();
+  const path = [];
+
+  function dfs(col, row) {
+    const key = `${col},${row}`;
+    visited.add(key);
+    path.push({ col, row });
+    if (path.length === length) return true;
+    // Allow orthogonal AND diagonal steps so the solution path is not
+    // confined to a predictable grid pattern.  Students should have to
+    // consider diagonal connectors, not dismiss them as automatic
+    // distractors.
+    for (const [dc, dr] of shuffle([
+      [1,0],[-1,0],[0,1],[0,-1],
+      [1,1],[1,-1],[-1,1],[-1,-1],
+    ])) {
+      const nc = col + dc, nr = row + dr;
+      if (nc < 0 || nc >= cols || nr < 0 || nr >= rows) continue;
+      if (visited.has(`${nc},${nr}`)) continue;
+      // For a diagonal step, refuse to cross any earlier diagonal step
+      // in this path (they would share a corner-gap).
+      let gapKey = null;
+      if (dc !== 0 && dr !== 0) {
+        gapKey = `${Math.min(col, nc)},${Math.min(row, nr)}`;
+        if (pathDiagonalGaps.has(gapKey)) continue;
+        pathDiagonalGaps.add(gapKey);
+      }
+      if (dfs(nc, nr)) return true;
+      // Backtrack: release this gap so a different branch may use it.
+      if (gapKey !== null) pathDiagonalGaps.delete(gapKey);
+    }
+    visited.delete(key);
+    path.pop();
+    return false;
+  }
+
+  dfs(0, 0);
+
+  // Fallback: classic snake (should never trigger for valid grid sizes)
+  if (path.length < length) {
+    path.length = 0;
+    for (let i = 0; i < length; i++) {
+      const row = Math.floor(i / cols), inRow = i % cols;
+      path.push({ col: row % 2 === 0 ? inRow : cols - 1 - inRow, row });
+    }
+  }
+  return path;
+}
+
+function renderSquareMaze() {
+  return renderSnakeGridMaze({
+    cellW: 175, cellH: 78,
+    hGap: 90, vGap: 64,
+    fontSize: 16,
+    startLabelOffset: 13,
+    drawCell: (x, y, w, h, klass) =>
+      `<rect class="${klass}" x="${(x - w/2).toFixed(1)}" y="${(y - h/2).toFixed(1)}" width="${w}" height="${h}" rx="4" ry="4"/>`,
+  });
+}
+
+// Render a clean rectangular connector strip between two cells.
+// `dx, dy` is the grid-direction (e.g., [1,0] right, [0,1] down, [1,1] diagonal).
+// The rect sits in the gap between the cells, with answer text rotated to stay readable.
+function renderRectConnector(fromPos, dx, dy, answer, isCorrect, problemId, problemIdx, cellW, cellH, hGap, vGap) {
+  let cx, cy, len, angleDeg;
+
+  if (dy === 0) {
+    cx = fromPos.x + dx * (cellW / 2 + hGap / 2);
+    cy = fromPos.y;
+    len = hGap;
+    angleDeg = 0;
+  } else if (dx === 0) {
+    cx = fromPos.x;
+    cy = fromPos.y + dy * (cellH / 2 + vGap / 2);
+    len = vGap;
+    angleDeg = 90;
+  } else {
+    // Diagonal: corner-to-corner of the two cells
+    const fromCorner = { x: fromPos.x + dx * cellW / 2, y: fromPos.y + dy * cellH / 2 };
+    const toCorner   = { x: fromCorner.x + dx * hGap,   y: fromCorner.y + dy * vGap   };
+    cx = (fromCorner.x + toCorner.x) / 2;
+    cy = (fromCorner.y + toCorner.y) / 2;
+    len = Math.hypot(toCorner.x - fromCorner.x, toCorner.y - fromCorner.y);
+    angleDeg = Math.atan2(toCorner.y - fromCorner.y, toCorner.x - fromCorner.x) * 180 / Math.PI;
+  }
+
+  const rectW = len, rectH = 36;
+
+  // Keep text readable (flip if it would render upside-down)
+  let textAngleDeg = angleDeg;
+  if (textAngleDeg > 90) textAngleDeg -= 180;
+  else if (textAngleDeg < -90) textAngleDeg += 180;
+
+  let klass = 'arrow-shape';
+  const selected = state.selectedAnswers[problemId];
+  if (state.mode === 'interactive') {
+    klass += ' clickable';
+    if (problemIdx !== state.pathIndex) klass += ' locked';
+    if (state.showingSolution && isCorrect) klass += ' correct-revealed';
+    else if (selected !== undefined && selected === answer) {
+      klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+    }
+  }
+
+  const dataAttrs = `data-problem-id="${problemId}" data-answer="${escapeHtml(answer)}" data-correct="${isCorrect}" data-problem-idx="${problemIdx}"`;
+
+  return `
+    <g transform="rotate(${angleDeg.toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})">
+      <rect class="${klass}" x="${(cx - rectW/2).toFixed(1)}" y="${(cy - rectH/2).toFixed(1)}" width="${rectW.toFixed(1)}" height="${rectH.toFixed(1)}" rx="2" ry="2" ${dataAttrs}/>
+    </g>
+    <g transform="rotate(${textAngleDeg.toFixed(2)} ${cx.toFixed(1)} ${cy.toFixed(1)})">
+      ${mathFO(answer || "?", cx, cy, rectW * 0.88, rectH * 0.88, 14)}
+    </g>
+  `;
+}
+
+/* =========================================================================
+   STYLE 3 : SNAKING PATH — same snake-grid + clean connectors, but with
+   smaller pill-shaped (fully rounded) cells for a more compact feel.
+   ========================================================================= */
+function renderLinearMaze() {
+  return renderSnakeGridMaze({
+    cellW: 160, cellH: 68,
+    hGap: 78, vGap: 54,
+    fontSize: 14,
+    startLabelOffset: 12,
+    drawCell: (x, y, w, h, klass) =>
+      `<rect class="${klass}" x="${(x - w/2).toFixed(1)}" y="${(y - h/2).toFixed(1)}" width="${w}" height="${h}" rx="${(h/2).toFixed(1)}" ry="${(h/2).toFixed(1)}"/>`,
+  });
+}
+
+/* =========================================================================
+   Generate one of several Hamiltonian paths through the two-ring graph.
+   Each call returns an array of { ring, pos } in path order. The `seed` (0..1)
+   selects which pattern to use, so the path varies between page loads /
+   sample loads but stays stable for repeated renders within a session.
+   Transitions are always geometric neighbors (same-ring CW/CCW, or radial).
+   ========================================================================= */
+function generateCircularPath(outerCount, innerCount, seed) {
+  // Pattern A — Outer CW, then Inner CCW. END at top inner (pos 0). Always available.
+  const patternA = () => {
+    const path = [];
+    for (let i = 0; i < outerCount; i++) path.push({ ring: 'outer', pos: i });
+    for (let i = innerCount - 1; i >= 0; i--) path.push({ ring: 'inner', pos: i });
+    return path;
+  };
+  // Uneven rings cannot always produce a full neighbor-by-neighbor path.
+  // Fall back to a compact grid style instead of drawing a misleading circular maze.
+  if (outerCount !== innerCount) return null;
+
+  const patterns = [patternA];
+
+  // Pattern B — Outer CW, then Inner CW (wrap around).
+  patterns.push(() => {
+    const path = [];
+    for (let i = 0; i < outerCount; i++) path.push({ ring: 'outer', pos: i });
+    let pos = (outerCount - 1) % innerCount;
+    for (let i = 0; i < innerCount; i++) {
+      path.push({ ring: 'inner', pos });
+      pos = (pos + 1) % innerCount;
+    }
+    return path;
+  });
+
+  // Pattern C — Outer CCW, then Inner CW. Mirror of A.
+  patterns.push(() => {
+    const path = [];
+    let pos = 0;
+    for (let i = 0; i < outerCount; i++) {
+      path.push({ ring: 'outer', pos });
+      pos = (pos - 1 + outerCount) % outerCount;
+    }
+    pos = 1 % innerCount;
+    for (let i = 0; i < innerCount; i++) {
+      path.push({ ring: 'inner', pos });
+      pos = (pos + 1) % innerCount;
+    }
+    return path;
+  });
+
+  // Pattern D — Outer CCW, then Inner CCW.
+  patterns.push(() => {
+    const path = [];
+    let pos = 0;
+    for (let i = 0; i < outerCount; i++) {
+      path.push({ ring: 'outer', pos });
+      pos = (pos - 1 + outerCount) % outerCount;
+    }
+    pos = 1 % innerCount;
+    for (let i = 0; i < innerCount; i++) {
+      path.push({ ring: 'inner', pos });
+      pos = (pos - 1 + innerCount) % innerCount;
+    }
+    return path;
+  });
+
+  // Pattern E — Zigzag between rings (pairs of outer, pairs of inner, repeating).
+  // Only works for even-sized aligned rings.
+  if (outerCount % 2 === 0) {
+    patterns.push(() => {
+      const path = [];
+      for (let g = 0; g < outerCount / 2; g++) {
+        const oStart = g * 2;
+        path.push({ ring: 'outer', pos: oStart });
+        path.push({ ring: 'outer', pos: (oStart + 1) % outerCount });
+        path.push({ ring: 'inner', pos: (oStart + 1) % innerCount });
+        path.push({ ring: 'inner', pos: (oStart + 2) % innerCount });
+      }
+      return path;
+    });
+  }
+
+  const idx = Math.floor(seed * patterns.length) % patterns.length;
+  return patterns[idx]();
+}
+
+/* =========================================================================
+   STYLE 4 : CIRCULAR — two concentric rings. The path is one of several
+   patterns picked from `state.circularPathSeed`. START is wherever the
+   chosen pattern begins on the outer ring; END is wherever it terminates.
+   Each cell shares connectors with its geometric neighbors (cw, ccw on its
+   ring, and radial to the other ring) — the lower-index cell owns each
+   shared connector and labels it with one of its answer choices.
+   ========================================================================= */
+function renderCircularMaze() {
+  const N = state.problems.length;
+  if (N === 0) return '';
+
+  const totalCells = N + 1; // problems + END
+  // Split cells as evenly as possible between outer and inner rings.
+  const outerCount = Math.ceil(totalCells / 2);
+  const innerCount = totalCells - outerCount;
+
+  // Path order is randomized — one of several distinct patterns picked by
+  // a per-session seed (see state.circularPathSeed). Reload or load-sample
+  // gives a fresh pattern; toggling mode/style preserves the current one.
+  const pathOrder = generateCircularPath(outerCount, innerCount, state.circularPathSeed);
+  if (!pathOrder) {
+    return renderSnakeGridMaze({
+      cellW: 175, cellH: 78,
+      hGap: 90, vGap: 64,
+      fontSize: 16,
+      startLabelOffset: 13,
+      drawCell: (x, y, w, h, klass) =>
+        `<rect class="${klass}" x="${(x - w/2).toFixed(1)}" y="${(y - h/2).toFixed(1)}" width="${w}" height="${h}" rx="4" ry="4"/>`,
+    });
+  }
+
+  // Geometry — outer radius is intentionally large so radial connectors at
+  // diagonal angles (1/5/7/11 o'clock positions) have enough room for readable
+  // math text (some answers like "(x+6)(x+2)" need ~100px rendered width).
+  // Cells are axis-aligned, so a radial ray at a diagonal angle exits through
+  // the cell's *short* edge (cellH/2 per side), eating ~cellH of the radial gap.
+  const cellW = 130, cellH = 55;
+  const outerRadius = Math.max(450, outerCount * 68);
+  const innerRadius = Math.max(195, outerRadius * 0.44);
+  const padding = 55;
+  const totalW = (outerRadius + cellW / 2 + padding) * 2;
+  const totalH = (outerRadius + cellH / 2 + padding) * 2;
+  const cx = totalW / 2;
+  const cy = totalH / 2;
+
+  // Compute the actual position of each cell in path order
+  const positions = pathOrder.map((cell, i) => {
+    const ringCount = cell.ring === 'outer' ? outerCount : innerCount;
+    const radius = cell.ring === 'outer' ? outerRadius : innerRadius;
+    const angle = -Math.PI / 2 + (cell.pos / ringCount) * 2 * Math.PI;
+    return {
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+      ring: cell.ring,
+      pos: cell.pos,
+      angle,
+      idx: i,
+    };
+  });
+
+  let svg = `<svg class="maze-svg" viewBox="0 0 ${totalW.toFixed(0)} ${totalH.toFixed(0)}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Decorative ring guides (very subtle, mostly for visual context)
+  svg += `<circle cx="${cx}" cy="${cy}" r="${outerRadius}" fill="none" stroke="#e1e6f0" stroke-width="1" stroke-dasharray="3 4"/>`;
+  svg += `<circle cx="${cx}" cy="${cy}" r="${innerRadius}" fill="none" stroke="#e1e6f0" stroke-width="1" stroke-dasharray="3 4"/>`;
+
+  // Build a lookup: (ring, pos) → cell
+  const cellByRingPos = {};
+  positions.forEach(p => { cellByRingPos[`${p.ring}-${p.pos}`] = p; });
+
+  // ---------- PASS 1: Shared connectors ----------
+  // For each cell, find its forward (higher-index) geometric neighbors, then
+  // draw ONE shared connector strip to each. The connector that lands on the
+  // path's next cell gets the correct answer; others get distractor answers.
+  for (let i = 0; i < N; i++) {
+    const fromPos = positions[i];
+    const problem = state.problems[i];
+
+    const ringCount = fromPos.ring === 'outer' ? outerCount : innerCount;
+    const cwPos  = (fromPos.pos + 1) % ringCount;
+    const ccwPos = (fromPos.pos - 1 + ringCount) % ringCount;
+
+    // Look up the 3 geometric neighbors (cw, ccw, radial)
+    const neighbors = [];
+    const cwCell  = cellByRingPos[`${fromPos.ring}-${cwPos}`];
+    const ccwCell = cellByRingPos[`${fromPos.ring}-${ccwPos}`];
+    const otherRing = fromPos.ring === 'outer' ? 'inner' : 'outer';
+    const radialCell = cellByRingPos[`${otherRing}-${fromPos.pos}`];
+    if (cwCell)     neighbors.push({ dir: 'cw',     cell: cwCell });
+    if (ccwCell)    neighbors.push({ dir: 'ccw',    cell: ccwCell });
+    if (radialCell) neighbors.push({ dir: 'radial', cell: radialCell });
+
+    // Keep only forward neighbors (cell.idx > i) — prevents overlap with
+    // connectors drawn by the lower-index cell of any pair.
+    const forwardNeighbors = neighbors.filter(n => n.cell.idx > i);
+    if (forwardNeighbors.length === 0) continue;
+
+    // The correct neighbor is the path's immediate next cell.
+    const nextPos = positions[i + 1];
+    const correctIdx = forwardNeighbors.findIndex(n => n.cell.idx === nextPos.idx);
+    let correctNbr, distractorNbrs;
+    if (correctIdx >= 0) {
+      correctNbr = forwardNeighbors[correctIdx];
+      distractorNbrs = forwardNeighbors.filter((_, idx) => idx !== correctIdx);
+    } else {
+      // Path successor isn't an immediate neighbor — pick any forward neighbor
+      // and let the rest be distractors. (Shouldn't happen with our path order.)
+      correctNbr = forwardNeighbors[0];
+      distractorNbrs = forwardNeighbors.slice(1);
+    }
+
+    // Distractor answers
+    const distractors = (problem.distractors || []).filter(d => d && d !== problem.correctAnswer);
+    while (distractors.length < distractorNbrs.length) distractors.push("?");
+    const shuffledDist = shuffleDeterministic(distractors, problem.id + 'd' + state.shuffleSalt);
+
+    // Render correct connector first
+    svg += renderCircularSharedConnector(fromPos, correctNbr.cell, problem.correctAnswer, true, problem.id, i, cellW, cellH);
+    // Then distractors
+    distractorNbrs.forEach((nbr, idx) => {
+      svg += renderCircularSharedConnector(fromPos, nbr.cell, shuffledDist[idx], false, problem.id, i, cellW, cellH);
+    });
+  }
+
+  // ---------- PASS 2: Cells ----------
+  for (let i = 0; i < N; i++) {
+    const pos = positions[i];
+    svg += `<rect class="${getCellClass(i)}" x="${(pos.x - cellW/2).toFixed(1)}" y="${(pos.y - cellH/2).toFixed(1)}" width="${cellW}" height="${cellH}" rx="6" ry="6"/>`;
+  }
+  const endPos = positions[N];
+  svg += `<rect class="cell-shape end" x="${(endPos.x - cellW/2).toFixed(1)}" y="${(endPos.y - cellH/2).toFixed(1)}" width="${cellW}" height="${cellH}" rx="6" ry="6"/>`;
+
+  // ---------- PASS 3: Labels and math ----------
+  for (let i = 0; i < N; i++) {
+    const pos = positions[i];
+    if (i === 0) {
+      svg += `<text class="cell-label" x="${pos.x}" y="${(pos.y - cellH/2 + 11).toFixed(1)}" font-size="10">START</text>`;
+    }
+    const textY = pos.y + (i === 0 ? 5 : 0);
+    svg += mathFO(state.problems[i].problem, pos.x, textY, cellW * 0.92, cellH * 0.6, 13);
+  }
+  svg += `<text class="cell-label" x="${endPos.x}" y="${endPos.y}" font-size="18">END!!!</text>`;
+
+  svg += `</svg>`;
+  return svg;
+}
+
+// Compute the exit point on an axis-aligned rectangle's edge for a ray
+// from its center at the given absolute angle. Handles any angle correctly,
+// so a diagonal ray exits through a corner rather than 0.5×min-dimension.
+function pointOnRectEdge(center, angle, w, h) {
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const tx = Math.abs(c) < 0.0001 ? Infinity : (w / 2) / Math.abs(c);
+  const ty = Math.abs(s) < 0.0001 ? Infinity : (h / 2) / Math.abs(s);
+  const t = Math.min(tx, ty);
+  return { x: center.x + c * t, y: center.y + s * t };
+}
+
+// Render a single SHARED connector strip between two cells. The connector
+// spans from one cell's edge to the other's, with answer text in the middle.
+// Only the lower-index cell ever calls this for any given pair, so no overlap.
+function renderCircularSharedConnector(fromPos, toCell, answer, isCorrect, problemId, problemIdx, cellW, cellH) {
+  const dx = toCell.x - fromPos.x;
+  const dy = toCell.y - fromPos.y;
+  const angle = Math.atan2(dy, dx);
+
+  // Find the exact edge of each rectangle along the connector's direction,
+  // then back off by a small margin so the strip doesn't touch the cells.
+  const fromEdge = pointOnRectEdge(fromPos, angle, cellW, cellH);
+  const toEdge = pointOnRectEdge(toCell, angle + Math.PI, cellW, cellH);
+  const margin = 3;
+  const startX = fromEdge.x + Math.cos(angle) * margin;
+  const startY = fromEdge.y + Math.sin(angle) * margin;
+  const endX = toEdge.x - Math.cos(angle) * margin;
+  const endY = toEdge.y - Math.sin(angle) * margin;
+  const cxMid = (startX + endX) / 2;
+  const cyMid = (startY + endY) / 2;
+  const len = Math.max(20, Math.hypot(endX - startX, endY - startY));
+
+  const rectW = len, rectH = 32;
+  const angleDeg = angle * 180 / Math.PI;
+  let textAngleDeg = angleDeg;
+  if (textAngleDeg > 90) textAngleDeg -= 180;
+  else if (textAngleDeg < -90) textAngleDeg += 180;
+
+  let klass = 'arrow-shape';
+  const selected = state.selectedAnswers[problemId];
+  if (state.mode === 'interactive') {
+    klass += ' clickable';
+    if (problemIdx !== state.pathIndex) klass += ' locked';
+    if (state.showingSolution && isCorrect) klass += ' correct-revealed';
+    else if (selected !== undefined && selected === answer) {
+      klass += isCorrect ? ' correct-revealed' : ' wrong-revealed';
+    }
+  }
+  const dataAttrs = `data-problem-id="${problemId}" data-answer="${escapeHtml(answer)}" data-correct="${isCorrect}" data-problem-idx="${problemIdx}"`;
+
+  return `
+    <g transform="rotate(${angleDeg.toFixed(2)} ${cxMid.toFixed(1)} ${cyMid.toFixed(1)})">
+      <rect class="${klass}" x="${(cxMid - rectW/2).toFixed(1)}" y="${(cyMid - rectH/2).toFixed(1)}" width="${rectW.toFixed(1)}" height="${rectH.toFixed(1)}" rx="2" ry="2" ${dataAttrs}/>
+    </g>
+    <g transform="rotate(${textAngleDeg.toFixed(2)} ${cxMid.toFixed(1)} ${cyMid.toFixed(1)})">
+      ${mathFO(answer || "?", cxMid, cyMid, rectW * 0.88, rectH * 0.85, 13)}
+    </g>
+  `;
+}
+
+/* =========================================================================
+   INTERACTIVE EVENT HANDLERS
+   ========================================================================= */
+function attachInteractiveHandlers() {
+  if (state.mode !== 'interactive') return;
+  document.querySelectorAll('.arrow-shape.clickable').forEach(arrow => {
+    arrow.addEventListener('click', () => {
+      const problemIdx = parseInt(arrow.dataset.problemIdx, 10);
+      const problemId = arrow.dataset.problemId;
+      const answer = arrow.dataset.answer;
+      const isCorrect = arrow.dataset.correct === 'true';
+
+      if (problemIdx !== state.pathIndex) {
+        showToast(problemIdx < state.pathIndex
+          ? 'You already solved that one!'
+          : 'Solve the earlier problems first.');
+        return;
+      }
+
+      state.selectedAnswers[problemId] = answer;
+      if (isCorrect) {
+        state.pathIndex++;
+        showToast('Correct! ✓');
+      } else {
+        showToast('Not quite — try again');
+        setTimeout(() => {
+          delete state.selectedAnswers[problemId];
+          renderMaze();
+        }, 900);
+      }
+      renderMaze();
+    });
+  });
+}
+
+/* =========================================================================
+   MAIN RENDER
+   ========================================================================= */
+function renderAll() {
+  renderProblemList();
+  renderMaze();
+}
+
+/* =========================================================================
+   EVENT WIRING
+   ========================================================================= */
+function init() {
+  document.getElementById('maze-title').addEventListener('input', e => {
+    state.title = e.target.value;
+    document.getElementById('display-title').textContent = state.title || 'Math Maze';
+  });
+  document.getElementById('maze-subtitle').addEventListener('input', e => {
+    state.subtitle = e.target.value;
+    const el = document.getElementById('display-subtitle');
+    el.innerHTML = renderLatex(state.subtitle || '');
+    el.style.display = state.subtitle ? 'block' : 'none';
+  });
+
+  document.querySelectorAll('.style-card').forEach(card => {
+    card.addEventListener('click', () => setActiveStyle(card.dataset.style));
+  });
+
+  document.querySelectorAll('#mode-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => setMode(btn.dataset.mode));
+  });
+
+  document.getElementById('btn-add-problem').addEventListener('click', () => openEditor(null));
+  document.getElementById('btn-clear-problems').addEventListener('click', clearAllProblems);
+
+  // Sample dropdown
+  const dropdown = document.getElementById('dropdown-samples');
+  document.getElementById('btn-samples').addEventListener('click', e => {
+    e.stopPropagation();
+    dropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', () => dropdown.classList.remove('open'));
+  dropdown.querySelectorAll('[data-sample]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      dropdown.classList.remove('open');
+      loadSample(btn.dataset.sample);
+    });
+  });
+
+  // Modal
+  document.getElementById('btn-modal-cancel').addEventListener('click', closeEditor);
+  document.getElementById('btn-modal-save').addEventListener('click', () => saveProblemFromEditor('close'));
+  document.getElementById('btn-modal-save-add').addEventListener('click', () => saveProblemFromEditor('add-another'));
+  document.getElementById('btn-modal-save-dup').addEventListener('click', () => saveProblemFromEditor('duplicate'));
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeEditor();
+  });
+  document.getElementById('btn-regenerate-distractors').addEventListener('click', () => {
+    const correct = (document.getElementById('m-correct').value || '').trim();
+    if (!correct) return showToast('Enter the correct answer first');
+    const d = generateDistractors(correct);
+    renderDistractorRows(d);
+  });
+  // Auto-fill distractors when correct answer field loses focus (only if all empty)
+  document.getElementById('m-correct').addEventListener('blur', () => {
+    const correct = (document.getElementById('m-correct').value || '').trim();
+    if (!correct) return;
+    const inputs = document.querySelectorAll('[data-distractor-i]');
+    const allEmpty = Array.from(inputs).every(el => !(el.value || '').trim());
+    if (allEmpty) {
+      renderDistractorRows(generateDistractors(correct));
+    }
+  });
+
+  // Maze controls
+  document.getElementById('btn-reshuffle').addEventListener('click', () => {
+    state.circularPathSeed = Math.random();
+    state.shuffleSalt++;
+    renderMaze();
+    showToast('Maze reshuffled!');
+  });
+  document.getElementById('btn-print').addEventListener('click', () => {
+    const wasMode = state.mode;
+    setMode('worksheet');
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setMode(wasMode), 100);
+    }, 100);
+  });
+  document.getElementById('btn-reset-path').addEventListener('click', () => {
+    resetInteractiveProgress();
+    renderMaze();
+    showToast('Path reset');
+  });
+  document.getElementById('btn-show-solution').addEventListener('click', () => {
+    state.showingSolution = !state.showingSolution;
+    renderMaze();
+    showToast(state.showingSolution ? 'Solution revealed' : 'Solution hidden');
+  });
+
+  // Export / Import
+  document.getElementById('btn-export').addEventListener('click', exportJSON);
+  document.getElementById('btn-import').addEventListener('click', () => {
+    document.getElementById('file-import').click();
+  });
+  document.getElementById('file-import').addEventListener('change', e => {
+    if (e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = '';
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('modal-overlay').classList.contains('open')) {
+      if (e.key === 'Escape') closeEditor();
+    }
+  });
+
+  renderAll();
+}
+
+// Wait for DOMContentLoaded; KaTeX & MathLive load with `defer`, so they should be ready by then.
+// We re-render once everything settles to ensure KaTeX is available for the initial paint.
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+  // Re-render once libraries are surely loaded (defensive)
+  setTimeout(renderAll, 200);
+});
+</script>
+</body>
+</html>
