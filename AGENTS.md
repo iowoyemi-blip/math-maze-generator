@@ -37,6 +37,6 @@ Then open the local app and verify:
 - Bulk entry accepts `problem | correct answer | wrong 1 | wrong 2 | wrong 3`
 - Recent Mazes can restore, copy, and delete a saved maze
 - Share Links generates both a student link and a teacher edit link
-- Student links open with teacher controls hidden and interactive mode active
+- Student links open cleanly with teacher controls hidden, no reset/teacher-view toolbar, and interactive mode active
 - deleting or clearing problems returns to the empty state without crashing
 - Print / Save as PDF switches to worksheet mode

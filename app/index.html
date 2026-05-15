@@ -607,29 +607,6 @@
     background: var(--bad-soft);
     color: var(--bad);
   }
-  .student-bar {
-    display: none;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 12px;
-    padding: 10px 14px;
-    background: #fff;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    box-shadow: var(--shadow);
-  }
-  .student-bar .student-label {
-    font-size: 13px;
-    font-weight: 800;
-  }
-  .student-bar .student-title {
-    font-size: 13px;
-    color: var(--ink-soft);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .student-bar .spacer { flex: 1; }
   body.student-view header.app-header,
   body.student-view aside.sidebar {
     display: none !important;
@@ -643,9 +620,6 @@
   }
   body.student-view .maze-controls {
     display: none !important;
-  }
-  body.student-view .student-bar {
-    display: flex;
   }
 
   /* ============== Print styles ============== */
@@ -665,7 +639,6 @@
       body.key-mode .arrow-shape.correct-revealed { fill: #dcfce7 !important; }
       .cell-shape.current, .cell-shape.visited { fill: #fff !important; stroke: #1f2533 !important; }
       .teacher-key { display: block !important; }
-      .student-bar { display: none !important; }
     }
 
   .maze-controls {
@@ -878,14 +851,6 @@
 
   <!-- ============== MAZE AREA ============== -->
   <section class="maze-area">
-
-    <div class="student-bar" id="student-bar">
-      <span class="student-label">Student Maze</span>
-      <span class="student-title" id="student-bar-title">My Math Maze</span>
-      <div class="spacer"></div>
-      <button id="btn-student-reset" class="ghost">Reset</button>
-      <button id="btn-exit-student" class="ghost">Teacher View</button>
-    </div>
 
     <div class="maze-controls" id="maze-controls">
       <button id="btn-print" class="primary">Print / Save as PDF</button>
@@ -1760,7 +1725,6 @@ function escapeHtml(s) {
   function setStudentView(enabled) {
     state.studentView = !!enabled;
     document.body.classList.toggle('student-view', state.studentView);
-    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
   }
 
   function loadSharedMazeFromHash() {
@@ -1812,15 +1776,6 @@ function escapeHtml(s) {
     } catch (e) {
       showToast('Link selected — copy it from the box.');
     }
-  }
-
-  function exitStudentView() {
-    setStudentView(false);
-    if (window.location.hash) {
-      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
-    }
-    setMode('interactive');
-    renderAll({ autosave: false });
   }
 
   function recentId() {
@@ -1932,7 +1887,6 @@ function escapeHtml(s) {
     state.circularPathSeed = Math.random();
     document.getElementById('maze-title').value = state.title;
     document.getElementById('maze-subtitle').value = state.subtitle;
-    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
     document.querySelectorAll('.style-card').forEach(c => {
       c.classList.toggle('active', c.dataset.style === state.style);
     });
@@ -3304,7 +3258,6 @@ function init() {
   document.getElementById('maze-title').addEventListener('input', e => {
     state.title = e.target.value;
     document.getElementById('display-title').textContent = state.title || 'Math Maze';
-    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
     scheduleAutosave();
   });
     document.getElementById('maze-subtitle').addEventListener('input', e => {
@@ -3408,12 +3361,6 @@ function init() {
     renderMaze();
     showToast('Path reset');
   });
-  document.getElementById('btn-student-reset').addEventListener('click', () => {
-    resetInteractiveProgress();
-    renderMaze();
-    showToast('Path reset');
-  });
-  document.getElementById('btn-exit-student').addEventListener('click', exitStudentView);
   document.getElementById('btn-show-solution').addEventListener('click', () => {
     state.showingSolution = !state.showingSolution;
     renderMaze();

@@ -30,7 +30,7 @@ A static classroom app for building printable or interactive math mazes. It is d
 
 ## Share Links
 
-The `Student Link` opens the current maze in a simplified interactive view with teacher controls hidden.
+The `Student Link` opens the current maze in a clean interactive view with teacher controls hidden.
 
 The `Teacher Edit Link` opens the same maze with editing controls available.
 

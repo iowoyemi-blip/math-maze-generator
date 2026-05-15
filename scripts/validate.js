@@ -75,6 +75,11 @@ const missingMarkers = requiredMarkers.filter(marker => !html.includes(marker));
 if (missingMarkers.length) {
   throw new Error(`Missing expected feature markers: ${missingMarkers.join(', ')}`);
 }
+const removedStudentControls = ['id="btn-student-reset"', 'id="btn-exit-student"', 'id="student-bar"'];
+const presentStudentControls = removedStudentControls.filter(marker => html.includes(marker));
+if (presentStudentControls.length) {
+  throw new Error(`Student shared view should stay clean; remove: ${presentStudentControls.join(', ')}`);
+}
 
 const sampleStart = html.indexOf('const SAMPLES = {');
 const sampleEnd = html.indexOf('\n};\n\n/* =========================================================================\n   UTIL', sampleStart);
@@ -117,6 +122,6 @@ console.log(JSON.stringify({
   samples: sampleKeys.length,
   menuItems: dropdownKeys.length,
   featureMarkers: requiredMarkers.length,
-  smokeTests: 4,
+  smokeTests: 5,
   issues: 0
 }));
