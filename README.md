@@ -5,6 +5,7 @@ A static classroom app for building printable or interactive math mazes. It is d
 ## What It Does
 
 - Loads ready-made Algebra I sample sets.
+- Organizes samples by Algebra I category with search and sample counts.
 - Lets teachers add, edit, duplicate, reorder, and delete problems.
 - Stores each problem with one correct answer and three distractors.
 - Renders the maze in multiple visual styles.
@@ -35,6 +36,10 @@ The `Student Link` opens the current maze in a clean interactive view with teach
 The `Teacher Edit Link` opens the same maze with editing controls available.
 
 The maze data is stored inside the link itself, so no account or server storage is needed. Very large mazes can create long links; for those, JSON export may be more reliable.
+
+## Sample Picker
+
+Use `Load Sample` to search all built-in samples or filter by course category. The picker shows the category, subtitle, and number of problems for each sample so it is easier to find a good starting point quickly.
 
 ## Bulk Entry Format
 

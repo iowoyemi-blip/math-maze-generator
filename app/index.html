@@ -73,32 +73,105 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     box-shadow: 0 10px 30px rgba(15,23,42,.1);
-    min-width: 260px;
+    width: min(560px, calc(100vw - 32px));
     max-height: 70vh;
-    overflow-y: auto;
+    overflow: hidden;
     z-index: 60;
     display: none;
   }
   .dropdown.open .dropdown-menu { display: block; }
-  .dropdown-menu button {
+  .sample-menu {
+    display: grid;
+    grid-template-rows: auto auto minmax(180px, 1fr) auto;
+    max-height: 70vh;
+  }
+  .sample-menu-top {
+    padding: 12px;
+    border-bottom: 1px solid var(--line);
+  }
+  .sample-search-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+  }
+  .sample-count {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .sample-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    border-bottom: 1px solid var(--line);
+  }
+  .sample-tabs button {
+    white-space: nowrap;
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #fff;
+  }
+  .sample-tabs button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .sample-list {
+    overflow-y: auto;
+    padding: 8px;
+  }
+  .sample-card-button {
     display: block;
     width: 100%;
     text-align: left;
-    border: none;
-    border-radius: 0;
+    border: 1px solid transparent;
+    border-radius: 8px;
     background: transparent;
-    padding: 10px 14px;
+    padding: 9px 10px;
+    margin: 0 0 5px;
     font-size: 13px;
   }
-  .dropdown-menu button:hover { background: var(--accent-soft); }
-  .dropdown-menu .label {
-    padding: 8px 14px 4px;
+  .sample-card-button:hover {
+    background: var(--accent-soft);
+    border-color: #ddd6fe;
+  }
+  .sample-card-title {
+    display: block;
+    font-weight: 750;
+    color: var(--ink);
+  }
+  .sample-card-sub,
+  .sample-card-meta {
+    display: block;
+    margin-top: 2px;
     font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .8px;
     color: var(--muted);
   }
-  .dropdown-menu hr { margin: 4px 0; border: none; border-top: 1px solid var(--line); }
+  .sample-card-meta { color: var(--ink-soft); }
+  .sample-menu-footer {
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    background: #f8f9fc;
+  }
+  .sample-menu-footer button { width: 100%; }
+  .sample-empty {
+    padding: 24px 12px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  @media (max-width: 720px) {
+    header.app-header { flex-wrap: wrap; }
+    .dropdown { position: relative; width: 100%; }
+    .dropdown-menu {
+      left: 0;
+      right: 0;
+      width: 100%;
+    }
+  }
 
   main.app {
     display: grid;
@@ -687,61 +760,21 @@
   <span class="tag">Any topic</span>
   <div class="spacer"></div>
   <div class="dropdown" id="dropdown-samples">
-    <button class="ghost" id="btn-samples">Load Sample ▾</button>
+    <button class="ghost" id="btn-samples" aria-expanded="false">Load Sample ▾</button>
     <div class="dropdown-menu">
-      <div class="label">Foundations</div>
-      <button data-sample="order-of-operations">Order of Operations</button>
-      <button data-sample="evaluating-expressions">Evaluating Algebraic Expressions</button>
-      <hr>
-      <div class="label">Equations & Inequalities</div>
-      <button data-sample="twostep">Two-Step Equations</button>
-      <button data-sample="multistep">Multi-Step Equations</button>
-      <button data-sample="literal-equations">Solving Literal Equations</button>
-      <button data-sample="inequalities-one-var">One-Variable Inequalities</button>
-      <button data-sample="compound-inequalities">Compound Inequalities</button>
-      <hr>
-      <div class="label">Functions</div>
-      <button data-sample="function-notation">Function Notation (Evaluate)</button>
-      <button data-sample="find-input">Find Input from Output</button>
-      <hr>
-      <div class="label">Lines</div>
-      <button data-sample="slope">Slope from Two Points</button>
-      <button data-sample="slope-intercept">Slope-Intercept Form</button>
-      <button data-sample="standard-to-slope-int">Standard → Slope-Intercept</button>
-      <button data-sample="parallel-lines">Parallel Lines</button>
-      <button data-sample="perpendicular-lines">Perpendicular Lines</button>
-      <hr>
-      <div class="label">Systems of Equations</div>
-      <button data-sample="substitution">Substitution Method</button>
-      <button data-sample="elimination">Elimination Method</button>
-      <hr>
-      <div class="label">Polynomials & Factoring</div>
-      <button data-sample="add-subtract-polys">Add & Subtract Polynomials</button>
-      <button data-sample="foil">Multiplying Polynomials (FOIL)</button>
-      <button data-sample="trinomial-trinomial">Trinomial × Trinomial</button>
-      <button data-sample="factor-gcf">Factor with GCF</button>
-      <button data-sample="factoring">Factoring Trinomials (a = 1)</button>
-      <button data-sample="factoring-a">Factoring Trinomials (a ≠ 1)</button>
-      <hr>
-      <div class="label">Quadratics</div>
-      <button data-sample="quadratics">Solving Quadratics</button>
-      <hr>
-      <div class="label">Radicals</div>
-      <button data-sample="radicals">Simplifying Radicals (Numeric)</button>
-      <button data-sample="radicals-vars">Simplifying Radicals w/ Variables</button>
-      <button data-sample="radicals-add-sub">Add & Subtract Radicals</button>
-      <button data-sample="rationalize">Rationalizing the Denominator</button>
-      <hr>
-      <div class="label">Exponents & Exponentials</div>
-      <button data-sample="exponents">Exponent Rules</button>
-      <button data-sample="exp-from-table">Exponential Function from Table</button>
-      <button data-sample="exp-decay-words">Exponential Growth/Decay Word Problems</button>
-      <hr>
-      <div class="label">Numbers & Other</div>
-      <button data-sample="fractions">Fraction Operations</button>
-      <button data-sample="word-problems">Algebra Word Problems</button>
-      <hr>
-      <button data-sample="blank">Start Blank</button>
+      <div class="sample-menu">
+        <div class="sample-menu-top">
+          <div class="sample-search-row">
+            <input type="text" id="sample-search" placeholder="Search samples by topic or skill">
+            <span class="sample-count" id="sample-count-label">32 samples</span>
+          </div>
+        </div>
+        <div class="sample-tabs" id="sample-category-tabs"></div>
+        <div class="sample-list" id="sample-list"></div>
+        <div class="sample-menu-footer">
+          <button data-sample="blank">Start Blank</button>
+        </div>
+      </div>
     </div>
   </div>
   <button id="btn-export" class="ghost">Export</button>
@@ -1634,6 +1667,56 @@ const SAMPLES = {
   },
 };
 
+const SAMPLE_GROUPS = [
+  {
+    id: 'foundations',
+    label: 'Foundations',
+    samples: ['order-of-operations', 'evaluating-expressions', 'fractions'],
+  },
+  {
+    id: 'equations',
+    label: 'Equations & Inequalities',
+    samples: ['twostep', 'multistep', 'literal-equations', 'inequalities-one-var', 'compound-inequalities', 'word-problems'],
+  },
+  {
+    id: 'functions',
+    label: 'Functions',
+    samples: ['function-notation', 'find-input'],
+  },
+  {
+    id: 'linear',
+    label: 'Linear Equations',
+    samples: ['slope', 'slope-intercept', 'standard-to-slope-int', 'parallel-lines', 'perpendicular-lines'],
+  },
+  {
+    id: 'systems',
+    label: 'Systems',
+    samples: ['substitution', 'elimination'],
+  },
+  {
+    id: 'polynomials',
+    label: 'Polynomials & Factoring',
+    samples: ['add-subtract-polys', 'foil', 'trinomial-trinomial', 'factor-gcf', 'factoring', 'factoring-a'],
+  },
+  {
+    id: 'quadratics',
+    label: 'Quadratics',
+    samples: ['quadratics'],
+  },
+  {
+    id: 'radicals',
+    label: 'Radicals',
+    samples: ['radicals', 'radicals-vars', 'radicals-add-sub', 'rationalize'],
+  },
+  {
+    id: 'exponentials',
+    label: 'Exponents & Exponentials',
+    samples: ['exponents', 'exp-from-table', 'exp-decay-words'],
+  },
+];
+
+let activeSampleGroup = 'all';
+
 /* =========================================================================
    UTIL
    ========================================================================= */
@@ -1649,6 +1732,83 @@ function showToast(msg) {
 
 function escapeHtml(s) {
   return String(s || "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function sampleKeysInOrder() {
+  return SAMPLE_GROUPS.flatMap(group => group.samples);
+}
+
+function sampleGroupForKey(key) {
+  return SAMPLE_GROUPS.find(group => group.samples.includes(key)) || null;
+}
+
+function sampleMatchesSearch(key, term) {
+  const sample = SAMPLES[key];
+  const group = sampleGroupForKey(key);
+  const haystack = [
+    key,
+    sample?.title,
+    sample?.subtitle,
+    group?.label,
+  ].join(' ').toLowerCase();
+  return haystack.includes(term);
+}
+
+function renderSamplePicker() {
+  const tabs = document.getElementById('sample-category-tabs');
+  const list = document.getElementById('sample-list');
+  const search = document.getElementById('sample-search');
+  const countLabel = document.getElementById('sample-count-label');
+  if (!tabs || !list || !search || !countLabel) return;
+
+  const allKeys = sampleKeysInOrder();
+  const query = search.value.trim().toLowerCase();
+  const groups = [
+    { id: 'all', label: 'All', samples: allKeys },
+    ...SAMPLE_GROUPS,
+  ];
+
+  tabs.innerHTML = groups.map(group => `
+    <button type="button" data-sample-group="${escapeHtml(group.id)}" class="${group.id === activeSampleGroup ? 'active' : ''}">
+      ${escapeHtml(group.label)} (${group.samples.length})
+    </button>
+  `).join('');
+
+  const activeGroup = groups.find(group => group.id === activeSampleGroup) || groups[0];
+  const visibleKeys = activeGroup.samples.filter(key => !query || sampleMatchesSearch(key, query));
+  countLabel.textContent = `${visibleKeys.length} of ${allKeys.length}`;
+
+  if (!visibleKeys.length) {
+    list.innerHTML = '<div class="sample-empty">No samples match that search.</div>';
+    return;
+  }
+
+  list.innerHTML = visibleKeys.map(key => {
+    const sample = SAMPLES[key];
+    const group = sampleGroupForKey(key);
+    return `
+      <button type="button" class="sample-card-button" data-sample="${escapeHtml(key)}">
+        <span class="sample-card-title">${escapeHtml(sample.title)}</span>
+        <span class="sample-card-meta">${escapeHtml(group?.label || 'Sample')} · ${sample.problems.length} problems</span>
+        <span class="sample-card-sub">${escapeHtml(sample.subtitle || 'Ready-to-edit sample set')}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function openSampleDropdown() {
+  const dropdown = document.getElementById('dropdown-samples');
+  const trigger = document.getElementById('btn-samples');
+  dropdown.classList.add('open');
+  trigger.setAttribute('aria-expanded', 'true');
+  renderSamplePicker();
+}
+
+function closeSampleDropdown() {
+  const dropdown = document.getElementById('dropdown-samples');
+  const trigger = document.getElementById('btn-samples');
+  dropdown.classList.remove('open');
+  trigger.setAttribute('aria-expanded', 'false');
 }
 
   // Render LaTeX to HTML using KaTeX. Falls back to plain text if KaTeX isn't loaded.
@@ -2415,7 +2575,7 @@ function renderMaze() {
   if (state.problems.length < 3) {
     area.innerHTML = emptyStateMarkup();
     const sampleButton = document.getElementById('btn-load-sample-empty');
-    if (sampleButton) sampleButton.addEventListener('click', () => loadSample('factoring'));
+    if (sampleButton) sampleButton.addEventListener('click', openSampleDropdown);
     document.getElementById('maze-controls').style.display = state.studentView || state.problems.length === 0 ? 'none' : 'flex';
     document.getElementById('status-banner').style.display = 'none';
     document.getElementById('path-progress').textContent = '';
@@ -3289,17 +3449,36 @@ function init() {
 
   // Sample dropdown
   const dropdown = document.getElementById('dropdown-samples');
+  const sampleSearch = document.getElementById('sample-search');
+  renderSamplePicker();
+  dropdown.addEventListener('click', e => e.stopPropagation());
   document.getElementById('btn-samples').addEventListener('click', e => {
     e.stopPropagation();
-    dropdown.classList.toggle('open');
+    if (dropdown.classList.contains('open')) {
+      closeSampleDropdown();
+    } else {
+      openSampleDropdown();
+      setTimeout(() => sampleSearch.focus(), 0);
+    }
   });
-  document.addEventListener('click', () => dropdown.classList.remove('open'));
-  dropdown.querySelectorAll('[data-sample]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      dropdown.classList.remove('open');
-      loadSample(btn.dataset.sample);
-    });
+  document.addEventListener('click', closeSampleDropdown);
+  sampleSearch.addEventListener('input', renderSamplePicker);
+  document.getElementById('sample-category-tabs').addEventListener('click', e => {
+    const btn = e.target.closest('[data-sample-group]');
+    if (!btn) return;
+    activeSampleGroup = btn.dataset.sampleGroup;
+    renderSamplePicker();
+  });
+  document.getElementById('sample-list').addEventListener('click', e => {
+    const btn = e.target.closest('[data-sample]');
+    if (!btn) return;
+    closeSampleDropdown();
+    loadSample(btn.dataset.sample);
+  });
+  dropdown.querySelector('[data-sample="blank"]').addEventListener('click', e => {
+    e.stopPropagation();
+    closeSampleDropdown();
+    loadSample('blank');
   });
 
   // Modal
@@ -3387,6 +3566,9 @@ function init() {
     }
     if (document.getElementById('share-modal-overlay').classList.contains('open')) {
       if (e.key === 'Escape') closeShareModal();
+    }
+    if (dropdown.classList.contains('open') && e.key === 'Escape') {
+      closeSampleDropdown();
     }
   });
 

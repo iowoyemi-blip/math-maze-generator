@@ -13,17 +13,23 @@ if (scriptStart < 0 || scriptEnd < 0) {
 const script = html.slice(scriptStart + '<script>'.length, scriptEnd);
 new Function(script);
 
+const elements = {};
+function stubElement() {
+  return {
+    value: '',
+    classList: { add() {}, remove() {}, toggle() {} },
+    style: {},
+    textContent: '',
+    innerHTML: '',
+    addEventListener() {},
+    setAttribute() {},
+  };
+}
 const documentStub = {
   addEventListener() {},
-  getElementById() {
-    return {
-      value: '',
-      classList: { add() {}, remove() {}, toggle() {} },
-      style: {},
-      textContent: '',
-      innerHTML: '',
-      addEventListener() {},
-    };
+  getElementById(id) {
+    elements[id] ||= stubElement();
+    return elements[id];
   },
   querySelectorAll() {
     return [];
@@ -38,7 +44,7 @@ const localStorageStub = {
 const runtime = Function(
   'document',
   'localStorage',
-  `${script}; return { parseBulkProblems, renderTeacherKey, state, mazeDataFromState, encodeSharePayload, decodeSharePayload };`
+  `${script}; return { parseBulkProblems, renderTeacherKey, state, mazeDataFromState, encodeSharePayload, decodeSharePayload, renderSamplePicker };`
 )(documentStub, localStorageStub);
 
 const bulkSmoke = runtime.parseBulkProblems('2x + 5 = 11 | x = 3 | x = 8 | x = -3 | x = 6\nbad row');
@@ -56,6 +62,14 @@ const sharedPayload = runtime.decodeSharePayload(runtime.encodeSharePayload(runt
 if (!sharedPayload.problems || sharedPayload.problems.length !== 1) {
   throw new Error('Shared link payload smoke test failed.');
 }
+elements['sample-search'] = stubElement();
+elements['sample-category-tabs'] = stubElement();
+elements['sample-list'] = stubElement();
+elements['sample-count-label'] = stubElement();
+runtime.renderSamplePicker();
+if (!elements['sample-list'].innerHTML.includes('Factoring Trinomials') || !elements['sample-category-tabs'].innerHTML.includes('Polynomials &amp; Factoring')) {
+  throw new Error('Sample picker render smoke test failed.');
+}
 
 const requiredMarkers = [
   'data-mode="key"',
@@ -69,6 +83,10 @@ const requiredMarkers = [
   'id="share-student-url"',
   'function loadSharedMazeFromHash()',
   'body.student-view',
+  'id="sample-search"',
+  'id="sample-category-tabs"',
+  'id="sample-list"',
+  'const SAMPLE_GROUPS',
 ];
 
 const missingMarkers = requiredMarkers.filter(marker => !html.includes(marker));
@@ -82,21 +100,20 @@ if (presentStudentControls.length) {
 }
 
 const sampleStart = html.indexOf('const SAMPLES = {');
-const sampleEnd = html.indexOf('\n};\n\n/* =========================================================================\n   UTIL', sampleStart);
+const sampleEnd = html.indexOf('\n/* =========================================================================\n   UTIL', sampleStart);
 if (sampleStart < 0 || sampleEnd < 0) {
-  throw new Error('Could not locate SAMPLES object.');
+  throw new Error('Could not locate sample catalog.');
 }
 
-const samples = Function(`${html.slice(sampleStart, sampleEnd + 4)} return SAMPLES;`)();
+const { SAMPLES: samples, SAMPLE_GROUPS: sampleGroups } = Function(`${html.slice(sampleStart, sampleEnd)} return { SAMPLES, SAMPLE_GROUPS };`)();
 const sampleKeys = Object.keys(samples);
-const dropdownKeys = [...html.matchAll(/data-sample="([^"]+)"/g)]
-  .map(match => match[1])
-  .filter(key => key !== 'blank');
+const groupedKeys = sampleGroups.flatMap(group => group.samples);
+const duplicateGroupKeys = groupedKeys.filter((key, index) => groupedKeys.indexOf(key) !== index);
 
-const missingSamples = dropdownKeys.filter(key => !samples[key]);
-const unlistedSamples = sampleKeys.filter(key => !dropdownKeys.includes(key));
-if (missingSamples.length || unlistedSamples.length) {
-  throw new Error(`Sample menu mismatch: missing=${missingSamples.join(',')} unlisted=${unlistedSamples.join(',')}`);
+const missingSamples = groupedKeys.filter(key => !samples[key]);
+const unlistedSamples = sampleKeys.filter(key => !groupedKeys.includes(key));
+if (missingSamples.length || unlistedSamples.length || duplicateGroupKeys.length) {
+  throw new Error(`Sample catalog mismatch: missing=${missingSamples.join(',')} unlisted=${unlistedSamples.join(',')} duplicates=${duplicateGroupKeys.join(',')}`);
 }
 
 const invalidSamples = [];
@@ -120,8 +137,9 @@ if (invalidSamples.length) {
 console.log(JSON.stringify({
   scripts: 1,
   samples: sampleKeys.length,
-  menuItems: dropdownKeys.length,
+  menuItems: groupedKeys.length,
+  sampleGroups: sampleGroups.length,
   featureMarkers: requiredMarkers.length,
-  smokeTests: 5,
+  smokeTests: 7,
   issues: 0
 }));
