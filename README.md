@@ -13,6 +13,7 @@ A static classroom app for building printable or interactive math mazes. It is d
 - Supports a teacher key mode with the solved path and a printable answer list.
 - Supports bulk problem entry with pipe-separated rows.
 - Auto-saves recent mazes in the teacher's browser for restore, copy, or delete.
+- Creates shareable student and teacher edit links for the exact current maze.
 - Exports and imports maze files as JSON.
 
 ## Teacher Workflow
@@ -23,8 +24,17 @@ A static classroom app for building printable or interactive math mazes. It is d
 4. Choose a maze style.
 5. Use `Bulk` to paste many rows at once when building from a typed list.
 6. Use `Teacher Key` when you need a solved path and answer list.
-7. Use `Print / Save as PDF` for paper use, or leave the app in interactive mode for screen use.
-8. Use `Export` if you want a portable backup file. Recent mazes are also saved automatically in the browser.
+7. Use `Share Links` to create a student link or teacher edit link.
+8. Use `Print / Save as PDF` for paper use, or leave the app in interactive mode for screen use.
+9. Use `Export` if you want a portable backup file. Recent mazes are also saved automatically in the browser.
+
+## Share Links
+
+The `Student Link` opens the current maze in a simplified interactive view with teacher controls hidden.
+
+The `Teacher Edit Link` opens the same maze with editing controls available.
+
+The maze data is stored inside the link itself, so no account or server storage is needed. Very large mazes can create long links; for those, JSON export may be more reliable.
 
 ## Bulk Entry Format
 

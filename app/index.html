@@ -607,6 +607,46 @@
     background: var(--bad-soft);
     color: var(--bad);
   }
+  .student-bar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .student-bar .student-label {
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .student-bar .student-title {
+    font-size: 13px;
+    color: var(--ink-soft);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .student-bar .spacer { flex: 1; }
+  body.student-view header.app-header,
+  body.student-view aside.sidebar {
+    display: none !important;
+  }
+  body.student-view main.app {
+    grid-template-columns: 1fr;
+    min-height: 100vh;
+  }
+  body.student-view .maze-area {
+    padding: 16px;
+  }
+  body.student-view .maze-controls {
+    display: none !important;
+  }
+  body.student-view .student-bar {
+    display: flex;
+  }
 
   /* ============== Print styles ============== */
     @media print {
@@ -625,6 +665,7 @@
       body.key-mode .arrow-shape.correct-revealed { fill: #dcfce7 !important; }
       .cell-shape.current, .cell-shape.visited { fill: #fff !important; stroke: #1f2533 !important; }
       .teacher-key { display: block !important; }
+      .student-bar { display: none !important; }
     }
 
   .maze-controls {
@@ -654,6 +695,16 @@
     align-items: center;
   }
   details.help .ex code { background: #fff; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--line); font-size: 11px; }
+  .share-url-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: end;
+  }
+  .share-url-row input {
+    font-size: 12px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
 </style>
 </head>
 <body>
@@ -828,8 +879,17 @@
   <!-- ============== MAZE AREA ============== -->
   <section class="maze-area">
 
+    <div class="student-bar" id="student-bar">
+      <span class="student-label">Student Maze</span>
+      <span class="student-title" id="student-bar-title">My Math Maze</span>
+      <div class="spacer"></div>
+      <button id="btn-student-reset" class="ghost">Reset</button>
+      <button id="btn-exit-student" class="ghost">Teacher View</button>
+    </div>
+
     <div class="maze-controls" id="maze-controls">
       <button id="btn-print" class="primary">Print / Save as PDF</button>
+      <button id="btn-share" class="ghost">Share Links</button>
       <button id="btn-reshuffle" title="Rearrange the maze layout and distractor positions">↻ Reshuffle Maze</button>
       <button id="btn-reset-path">Reset Path</button>
       <button id="btn-show-solution">Show Solution</button>
@@ -891,6 +951,35 @@
   </div>
   </div>
 
+  <!-- Share Links Modal -->
+  <div class="modal-overlay" id="share-modal-overlay">
+    <div class="modal">
+      <h2>Share Maze Links</h2>
+      <div class="form-grid">
+        <div>
+          <label for="share-student-url">Student Link</label>
+          <div class="share-url-row">
+            <input type="text" id="share-student-url" readonly>
+            <button id="btn-copy-student" class="primary">Copy</button>
+          </div>
+          <div class="hint">Opens this exact maze in interactive student view with teacher controls hidden.</div>
+        </div>
+        <div>
+          <label for="share-teacher-url">Teacher Edit Link</label>
+          <div class="share-url-row">
+            <input type="text" id="share-teacher-url" readonly>
+            <button id="btn-copy-teacher" class="ghost">Copy</button>
+          </div>
+          <div class="hint">Opens this exact maze with editing controls available.</div>
+        </div>
+        <div id="share-status" class="bulk-status">Links are generated from the current maze.</div>
+      </div>
+      <div class="actions">
+        <button id="btn-share-close">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Bulk Problem Entry Modal -->
   <div class="modal-overlay" id="bulk-modal-overlay">
     <div class="modal">
@@ -929,6 +1018,7 @@ const state = {
     editingProblemId: null,
     currentMazeId: null,
     autosaveTimer: null,
+    studentView: false,
   // Seed for circular-maze path selection. Re-rolled on each page load and
   // each loadSample(), but kept stable across re-renders within a session so
   // toggling mode/style/interaction doesn't shuffle the maze.
@@ -941,6 +1031,7 @@ const state = {
   const STORAGE_KEY_RECENTS = 'mathMazeRecentMazesV1';
   const RECENT_LIMIT = 8;
   const VALID_STYLES = ['hexagonal', 'square', 'linear', 'circular'];
+  const SHARE_HASH_KEYS = ['student', 'teacher'];
 
 /* =========================================================================
    SAMPLE DATA — multiple topics, all stored as LaTeX
@@ -1626,6 +1717,112 @@ function escapeHtml(s) {
       `;
   }
 
+  function encodeSharePayload(data) {
+    const json = JSON.stringify(data);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  function decodeSharePayload(payload) {
+    const normalized = String(payload || '').replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }
+
+  function shareBaseUrl() {
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+
+  function createShareUrl(kind) {
+    const data = mazeDataFromState();
+    return `${shareBaseUrl()}#${kind}=${encodeSharePayload(data)}`;
+  }
+
+  function sharedMazeFromHash() {
+    if (!window.location.hash || window.location.hash.length < 3) return null;
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const key = SHARE_HASH_KEYS.find(name => params.has(name));
+    if (!key) return null;
+    try {
+      const data = decodeSharePayload(params.get(key));
+      if (!data || !Array.isArray(data.problems)) throw new Error('Invalid shared maze');
+      return { kind: key, data };
+    } catch (e) {
+      showToast("Couldn't open that shared maze link.");
+      return null;
+    }
+  }
+
+  function setStudentView(enabled) {
+    state.studentView = !!enabled;
+    document.body.classList.toggle('student-view', state.studentView);
+    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
+  }
+
+  function loadSharedMazeFromHash() {
+    const shared = sharedMazeFromHash();
+    if (!shared) return false;
+    applyMazeData(shared.data, { currentMazeId: null, autosave: false });
+    setStudentView(shared.kind === 'student');
+    setMode('interactive');
+    resetInteractiveProgress();
+    renderAll({ autosave: false });
+    showToast(shared.kind === 'student' ? 'Opened student maze link' : 'Opened shared teacher maze');
+    return true;
+  }
+
+  function updateShareModal() {
+    const studentUrl = createShareUrl('student');
+    const teacherUrl = createShareUrl('teacher');
+    document.getElementById('share-student-url').value = studentUrl;
+    document.getElementById('share-teacher-url').value = teacherUrl;
+    const status = document.getElementById('share-status');
+    status.className = 'bulk-status';
+    const longest = Math.max(studentUrl.length, teacherUrl.length);
+    if (longest > 7000) {
+      status.classList.add('error');
+      status.textContent = 'This maze creates a very long link. Exporting JSON may be more reliable for this one.';
+    } else {
+      status.classList.add('success');
+      status.textContent = 'Links are ready. Use Student Link for class access.';
+    }
+  }
+
+  function openShareModal() {
+    if (state.problems.length < 3) return showToast('Add at least 3 problems before sharing.');
+    updateShareModal();
+    document.getElementById('share-modal-overlay').classList.add('open');
+  }
+
+  function closeShareModal() {
+    document.getElementById('share-modal-overlay').classList.remove('open');
+  }
+
+  async function copyShareInput(inputId) {
+    const input = document.getElementById(inputId);
+    input.focus();
+    input.select();
+    try {
+      await navigator.clipboard.writeText(input.value);
+      showToast('Link copied');
+    } catch (e) {
+      showToast('Link selected — copy it from the box.');
+    }
+  }
+
+  function exitStudentView() {
+    setStudentView(false);
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+    setMode('interactive');
+    renderAll({ autosave: false });
+  }
+
   function recentId() {
     return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
@@ -1735,6 +1932,7 @@ function escapeHtml(s) {
     state.circularPathSeed = Math.random();
     document.getElementById('maze-title').value = state.title;
     document.getElementById('maze-subtitle').value = state.subtitle;
+    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
     document.querySelectorAll('.style-card').forEach(c => {
       c.classList.toggle('active', c.dataset.style === state.style);
     });
@@ -2264,13 +2462,13 @@ function renderMaze() {
     area.innerHTML = emptyStateMarkup();
     const sampleButton = document.getElementById('btn-load-sample-empty');
     if (sampleButton) sampleButton.addEventListener('click', () => loadSample('factoring'));
-    document.getElementById('maze-controls').style.display = state.problems.length === 0 ? 'none' : 'flex';
+    document.getElementById('maze-controls').style.display = state.studentView || state.problems.length === 0 ? 'none' : 'flex';
     document.getElementById('status-banner').style.display = 'none';
     document.getElementById('path-progress').textContent = '';
     return;
   }
 
-  document.getElementById('maze-controls').style.display = 'flex';
+  document.getElementById('maze-controls').style.display = state.studentView ? 'none' : 'flex';
   let svg;
     switch (state.style) {
       case 'hexagonal': svg = renderHexagonalMaze(); break;
@@ -3103,11 +3301,12 @@ function attachInteractiveHandlers() {
    EVENT WIRING
    ========================================================================= */
 function init() {
-    document.getElementById('maze-title').addEventListener('input', e => {
-      state.title = e.target.value;
-      document.getElementById('display-title').textContent = state.title || 'Math Maze';
-      scheduleAutosave();
-    });
+  document.getElementById('maze-title').addEventListener('input', e => {
+    state.title = e.target.value;
+    document.getElementById('display-title').textContent = state.title || 'Math Maze';
+    document.getElementById('student-bar-title').textContent = state.title || 'Math Maze';
+    scheduleAutosave();
+  });
     document.getElementById('maze-subtitle').addEventListener('input', e => {
       state.subtitle = e.target.value;
       const el = document.getElementById('display-subtitle');
@@ -3162,9 +3361,15 @@ function init() {
     document.getElementById('btn-bulk-add').addEventListener('click', () => commitBulkProblems(false));
     document.getElementById('btn-bulk-replace').addEventListener('click', () => commitBulkProblems(true));
     document.getElementById('bulk-input').addEventListener('input', updateBulkStatus);
-    document.getElementById('bulk-modal-overlay').addEventListener('click', e => {
-      if (e.target.id === 'bulk-modal-overlay') closeBulkEntry();
-    });
+  document.getElementById('bulk-modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'bulk-modal-overlay') closeBulkEntry();
+  });
+  document.getElementById('share-modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'share-modal-overlay') closeShareModal();
+  });
+  document.getElementById('btn-share-close').addEventListener('click', closeShareModal);
+  document.getElementById('btn-copy-student').addEventListener('click', () => copyShareInput('share-student-url'));
+  document.getElementById('btn-copy-teacher').addEventListener('click', () => copyShareInput('share-teacher-url'));
   document.getElementById('btn-regenerate-distractors').addEventListener('click', () => {
     const correct = (document.getElementById('m-correct').value || '').trim();
     if (!correct) return showToast('Enter the correct answer first');
@@ -3183,6 +3388,7 @@ function init() {
   });
 
   // Maze controls
+  document.getElementById('btn-share').addEventListener('click', openShareModal);
   document.getElementById('btn-reshuffle').addEventListener('click', () => {
     state.circularPathSeed = Math.random();
     state.shuffleSalt++;
@@ -3202,6 +3408,12 @@ function init() {
     renderMaze();
     showToast('Path reset');
   });
+  document.getElementById('btn-student-reset').addEventListener('click', () => {
+    resetInteractiveProgress();
+    renderMaze();
+    showToast('Path reset');
+  });
+  document.getElementById('btn-exit-student').addEventListener('click', exitStudentView);
   document.getElementById('btn-show-solution').addEventListener('click', () => {
     state.showingSolution = !state.showingSolution;
     renderMaze();
@@ -3223,13 +3435,21 @@ function init() {
       if (document.getElementById('modal-overlay').classList.contains('open')) {
         if (e.key === 'Escape') closeEditor();
       }
-      if (document.getElementById('bulk-modal-overlay').classList.contains('open')) {
-        if (e.key === 'Escape') closeBulkEntry();
-      }
-    });
+    if (document.getElementById('bulk-modal-overlay').classList.contains('open')) {
+      if (e.key === 'Escape') closeBulkEntry();
+    }
+    if (document.getElementById('share-modal-overlay').classList.contains('open')) {
+      if (e.key === 'Escape') closeShareModal();
+    }
+  });
 
+  if (!loadSharedMazeFromHash()) {
     setMode(state.mode);
     renderAll({ autosave: false });
+  }
+  window.addEventListener('hashchange', () => {
+    loadSharedMazeFromHash();
+  });
   }
 
 // Wait for DOMContentLoaded; KaTeX & MathLive load with `defer`, so they should be ready by then.

@@ -38,7 +38,7 @@ const localStorageStub = {
 const runtime = Function(
   'document',
   'localStorage',
-  `${script}; return { parseBulkProblems, renderTeacherKey, state, mazeDataFromState };`
+  `${script}; return { parseBulkProblems, renderTeacherKey, state, mazeDataFromState, encodeSharePayload, decodeSharePayload };`
 )(documentStub, localStorageStub);
 
 const bulkSmoke = runtime.parseBulkProblems('2x + 5 = 11 | x = 3 | x = 8 | x = -3 | x = 6\nbad row');
@@ -52,6 +52,10 @@ if (!runtime.renderTeacherKey().includes('Teacher Key')) {
 if (runtime.mazeDataFromState().problems.length !== 1) {
   throw new Error('Maze data snapshot smoke test failed.');
 }
+const sharedPayload = runtime.decodeSharePayload(runtime.encodeSharePayload(runtime.mazeDataFromState()));
+if (!sharedPayload.problems || sharedPayload.problems.length !== 1) {
+  throw new Error('Shared link payload smoke test failed.');
+}
 
 const requiredMarkers = [
   'data-mode="key"',
@@ -61,6 +65,10 @@ const requiredMarkers = [
   'function parseBulkProblems(text)',
   'function saveCurrentToRecent()',
   'function emptyStateMarkup()',
+  'id="btn-share"',
+  'id="share-student-url"',
+  'function loadSharedMazeFromHash()',
+  'body.student-view',
 ];
 
 const missingMarkers = requiredMarkers.filter(marker => !html.includes(marker));
@@ -109,6 +117,6 @@ console.log(JSON.stringify({
   samples: sampleKeys.length,
   menuItems: dropdownKeys.length,
   featureMarkers: requiredMarkers.length,
-  smokeTests: 3,
+  smokeTests: 4,
   issues: 0
 }));
